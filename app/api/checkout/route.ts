@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";\nimport Stripe from "stripe";
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { productById } from "@/lib/catalog";
 import { config } from "@/lib/config";
 import { getMenuState } from "@/lib/cycle";
