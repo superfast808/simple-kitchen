@@ -4,7 +4,8 @@ import { config } from "@/lib/config";
 import { sendMail } from "@/lib/mail";
 import { markOrderStatusBySession } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
-import { upsertStripeSubscription } from "@/lib/subscriptions";
+import { deactivateStripeSubscription, upsertStripeSubscription } from "@/lib/subscriptions";
+import { recordPaidOrderAudienceBySession, setAudienceSubscriptionByEmail } from "@/lib/smsReminders";
 
 export async function POST(request:NextRequest){
   const signature=request.headers.get("stripe-signature");
@@ -17,19 +18,24 @@ export async function POST(request:NextRequest){
 
     if(event.type==="checkout.session.completed"){
       const session=event.data.object as Stripe.Checkout.Session;
-      if(session.mode==="payment") await markOrderStatusBySession(session.id,"paid");
+      if(session.mode==="payment"){
+        await markOrderStatusBySession(session.id,"paid");
+        await recordPaidOrderAudienceBySession(session.id);
+      }
 
       if(session.mode==="subscription"&&session.metadata?.type==="subscription"&&session.subscription){
+        const email=session.customer_details?.email||"";
         const token=await upsertStripeSubscription({
           stripeSubscriptionId:String(session.subscription),
           stripeCustomerId:session.customer?String(session.customer):undefined,
-          email:session.customer_details?.email||"",
+          email,
           name:session.metadata.customerName||session.customer_details?.name||undefined,
           meals:Number(session.metadata.meals),
           fulfilment:session.metadata.fulfilment==="delivery"?"delivery":"collection",
           cadenceWeeks:Number(session.metadata.intervalWeeks)||1,
           sourcePlan:session.metadata.plan||"weekly"
         });
+        await setAudienceSubscriptionByEmail(email,true);
         const url=config.siteUrl+"/subscription-select?token="+token;
         await sendMail(
           session.customer_details?.email||"",
@@ -42,6 +48,12 @@ export async function POST(request:NextRequest){
     if(event.type==="checkout.session.expired"){
       const session=event.data.object as Stripe.Checkout.Session;
       if(session.mode==="payment") await markOrderStatusBySession(session.id,"expired");
+    }
+
+    if(event.type==="customer.subscription.deleted"){
+      const subscription=event.data.object as Stripe.Subscription;
+      const email=await deactivateStripeSubscription(subscription.id);
+      if(email) await setAudienceSubscriptionByEmail(email,false);
     }
 
     return NextResponse.json({received:true});
