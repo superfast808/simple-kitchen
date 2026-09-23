@@ -60,7 +60,8 @@ async function main(){
         instance_id:method.instance_id,
         title:method.title,
         method_title:method.method_title,
-        enabled:method.enabled
+        enabled:method.enabled,
+        settings:method.settings||{}
       }))
     });
   }
@@ -101,6 +102,8 @@ async function main(){
       categories:(product.categories||[]).map(c=>c.name),
       tags:(product.tags||[]).map(t=>t.name),
       images:(product.images||[]).map(image=>image.src),
+      description:product.description||"",
+      short_description:product.short_description||"",
       variations:product.variations||[],
       attributes:product.attributes||[],
       meta:(product.meta_data||[]).map(entry=>({key:entry.key,value:entry.value}))
