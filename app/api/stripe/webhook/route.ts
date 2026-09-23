@@ -24,14 +24,14 @@ export async function POST(request: NextRequest) {
         const token = await upsertStripeSubscription({
           stripeSubscriptionId: String(session.subscription),
           stripeCustomerId: session.customer ? String(session.customer) : undefined,
-          email: session.customer_details?.email || session.customer_email || "",
+          email: session.customer_details?.email || "",
           name: session.metadata.customerName || session.customer_details?.name || undefined,
           meals: Number(session.metadata.meals),
           fulfilment: session.metadata.fulfilment === "delivery" ? "delivery" : "collection"
         });
         const url = `${config.siteUrl}/subscription-select?token=${token}`;
         await sendMail(
-          session.customer_details?.email || session.customer_email || "",
+          session.customer_details?.email || "",
           "Choose your Simple Kitchen meals",
           `<h2>Your Simple Kitchen subscription is active</h2><p>Use the link below each week to choose your meals.</p><p><a href="${url}">Choose this week's meals</a></p>`
         );
