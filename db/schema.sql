@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS orders (
   expires_at timestamptz
 );
 
-CREATE INDEX IF NOT EXISTS orders_cycle_status_idx ON orders (cycle_key, status);
-CREATE INDEX IF NOT EXISTS orders_fulfilment_idx ON orders (fulfilment_date, fulfilment, status);
+CREATE INDEX IF NOT EXISTS orders_cycle_status_idx ON orders (cycle_key,status);
+CREATE INDEX IF NOT EXISTS orders_fulfilment_idx ON orders (fulfilment_date,fulfilment,status);
 CREATE UNIQUE INDEX IF NOT EXISTS orders_stripe_session_idx ON orders (stripe_session_id) WHERE stripe_session_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS order_items (
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   product_id text NOT NULL,
   name text NOT NULL,
   unit_price_pence integer NOT NULL,
-  quantity integer NOT NULL CHECK (quantity > 0)
+  quantity integer NOT NULL CHECK (quantity>0)
 );
 CREATE INDEX IF NOT EXISTS order_items_order_idx ON order_items (order_id);
 
@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   customer_name text,
   meals_per_week integer NOT NULL,
   fulfilment text NOT NULL CHECK (fulfilment IN ('collection','delivery')),
+  cadence_weeks integer NOT NULL DEFAULT 1,
+  source_plan text NOT NULL DEFAULT 'weekly',
   selection_token uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE
 );
 
@@ -53,5 +55,5 @@ CREATE TABLE IF NOT EXISTS subscription_selections (
   selection jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(subscription_id, cycle_key)
+  UNIQUE(subscription_id,cycle_key)
 );
