@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";\nimport Stripe from "stripe";
 import { productById } from "@/lib/catalog";
 import { config } from "@/lib/config";
 import { getMenuState } from "@/lib/cycle";
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     });
 
     const stripe = getStripe();
-    const line_items = resolved.map(({product,quantity}) => ({
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = resolved.map(({product,quantity}) => ({
       quantity,
       price_data: {
         currency:"gbp",
