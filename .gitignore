@@ -7,3 +7,5 @@ npm-debug.log*
 .DS_Store
 coverage
 data/woo-products.json
+data/woo-inspection.json
+data/woo-raw/
