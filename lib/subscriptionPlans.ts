@@ -1,4 +1,4 @@
-export type SubscriptionCadence="weekly"|"fortnightly";
+export type SubscriptionCadence="weekly"|"fortnightly"|"twice-weekly";
 
 export type SubscriptionOption={
   meals:number;
@@ -12,6 +12,7 @@ export type SubscriptionPlan={
   description:string;
   intervalWeeks:1|2;
   wooProductId:number;
+  fulfilmentsPerCycle:1|2;
   options:SubscriptionOption[];
 };
 
@@ -22,6 +23,7 @@ export const subscriptionPlans:Record<SubscriptionCadence,SubscriptionPlan>={
     description:"Weekly meals on a subscription basis.",
     intervalWeeks:1,
     wooProductId:291,
+    fulfilmentsPerCycle:1,
     options:[
       { meals:4, pricePence:3100, wooVariationId:292 },
       { meals:5, pricePence:3875, wooVariationId:293 },
@@ -58,6 +60,7 @@ export const subscriptionPlans:Record<SubscriptionCadence,SubscriptionPlan>={
     description:"Fortnightly meals on a subscription basis.",
     intervalWeeks:2,
     wooProductId:764,
+    fulfilmentsPerCycle:1,
     options:[
       { meals:4, pricePence:3100, wooVariationId:765 },
       { meals:5, pricePence:3875, wooVariationId:766 },
@@ -87,9 +90,48 @@ export const subscriptionPlans:Record<SubscriptionCadence,SubscriptionPlan>={
       { meals:29, pricePence:21750, wooVariationId:790 },
       { meals:30, pricePence:22500, wooVariationId:791 }
     ]
+  },
+  "twice-weekly":{
+    id:"twice-weekly",
+    name:"Twice Weekly Meal Subscription",
+    description:"Two Simple Kitchen fulfilments each week.",
+    intervalWeeks:1,
+    wooProductId:4744,
+    fulfilmentsPerCycle:2,
+    options:[
+      { meals:4, pricePence:6333, wooVariationId:4745 },
+      { meals:5, pricePence:7833, wooVariationId:4746 },
+      { meals:6, pricePence:9300, wooVariationId:4747 },
+      { meals:7, pricePence:10833, wooVariationId:4748 },
+      { meals:8, pricePence:12333, wooVariationId:4749 },
+      { meals:9, pricePence:13833, wooVariationId:4750 },
+      { meals:10, pricePence:15333, wooVariationId:4751 },
+      { meals:11, pricePence:16833, wooVariationId:4752 },
+      { meals:12, pricePence:18333, wooVariationId:4753 },
+      { meals:13, pricePence:19833, wooVariationId:4754 },
+      { meals:14, pricePence:21333, wooVariationId:4755 },
+      { meals:15, pricePence:22833, wooVariationId:4756 },
+      { meals:16, pricePence:24333, wooVariationId:4757 },
+      { meals:17, pricePence:25833, wooVariationId:4758 },
+      { meals:18, pricePence:27333, wooVariationId:4759 },
+      { meals:19, pricePence:28833, wooVariationId:4760 },
+      { meals:20, pricePence:30333, wooVariationId:4761 },
+      { meals:21, pricePence:31833, wooVariationId:4762 },
+      { meals:22, pricePence:33333, wooVariationId:4763 },
+      { meals:23, pricePence:34833, wooVariationId:4764 },
+      { meals:24, pricePence:36333, wooVariationId:4765 },
+      { meals:25, pricePence:37833, wooVariationId:4766 },
+      { meals:26, pricePence:39333, wooVariationId:4767 },
+      { meals:27, pricePence:40833, wooVariationId:4768 },
+      { meals:28, pricePence:42333, wooVariationId:4769 },
+      { meals:29, pricePence:43833, wooVariationId:4770 },
+      { meals:30, pricePence:45333, wooVariationId:4771 }
+    ]
   }
 };
 
 export function subscriptionPlan(id:string){
-  return id==="fortnightly"?subscriptionPlans.fortnightly:subscriptionPlans.weekly;
+  if(id==="fortnightly") return subscriptionPlans.fortnightly;
+  if(id==="twice-weekly") return subscriptionPlans["twice-weekly"];
+  return subscriptionPlans.weekly;
 }
