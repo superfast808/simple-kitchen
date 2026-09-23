@@ -1,0 +1,1 @@
+export default function SubscriptionSuccessPage(){return <section className="section shell narrow"><div className="success-card"><span>✓</span><h1>Subscription active</h1><p>Thanks for subscribing to Simple Kitchen. Your meal-choice link is being sent to your email address.</p></div></section>;}
