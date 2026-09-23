@@ -1,5 +1,14 @@
 import { SubscriptionOptions } from "@/components/SubscriptionOptions";
-import { config, subscriptionOptions } from "@/lib/config";
-export default function SubscriptionsPage() {
-  return <><section className="page-hero"><div className="shell narrow"><div className="eyebrow">Weekly meals</div><h1>Subscriptions</h1><p>Join us on a subscription basis and your meals automatically re-order each week. We’ll send your personal link so you can choose the meals you want from each weekly menu.</p></div></section><section className="section shell subscription-layout"><div><div className="eyebrow">Subscribe to Simple Kitchen</div><h2>Meals sorted, every week</h2><p>Choose how many meals you want, then select collection or delivery. Billing recurs weekly through Stripe.</p><ul className="tick-list"><li>Weekly recurring order</li><li>Choose different meals each week</li><li>Delivery or collection</li><li>Secure Stripe billing</li></ul></div><SubscriptionOptions options={subscriptionOptions()} deliveryFee={config.deliveryFeePence}/></section></>;
+import { config } from "@/lib/config";
+import { subscriptionPlans } from "@/lib/subscriptionPlans";
+
+export default function SubscriptionsPage(){
+  const plans=[subscriptionPlans.weekly,subscriptionPlans.fortnightly];
+  return <>
+    <section className="page-hero"><div className="shell narrow"><div className="eyebrow">Meal subscriptions</div><h1>Subscriptions</h1><p>Join us on a subscription basis. Choose weekly or fortnightly meals, then use your personal link to select the meals you want from each live menu.</p></div></section>
+    <section className="section shell subscription-layout">
+      <div><div className="eyebrow">Subscribe to Simple Kitchen</div><h2>Meals sorted around you</h2><p>The live WooCommerce store offers weekly and fortnightly subscriptions with meal quantities from 4 to 30.</p><ul className="tick-list"><li>Weekly or fortnightly billing</li><li>Choose different meals each cycle</li><li>Delivery or collection</li><li>Secure Stripe billing</li></ul></div>
+      <SubscriptionOptions plans={plans} deliveryFee={config.deliveryFeePence}/>
+    </section>
+  </>;
 }
