@@ -25,7 +25,7 @@ export const products: Product[] = [
   { id:"639", name:"Spanish Style Chicken Pasta", description:"624 Cals · 43g Protein · 60g Carbs · 21g Fat", price:7.75, category:"main", weeks:[2], image:"https://simplekitchenprep.com/wp-content/uploads/2025/08/WhatsApp-Image-2026-04-04-at-12.38.51.jpeg", calories:624, protein:43, carbs:60, fat:21, allergens:["Gluten","Milk"] },
   { id:"637", name:"Slow Cooked Beef Massaman Noodles", description:"663 Cals · 46g Protein · 67g Carbs · 24g Fat", price:7.75, category:"main", weeks:[2], image:"https://simplekitchenprep.com/wp-content/uploads/2025/08/WhatsApp-Image-2026-04-04-at-12.38.51.jpeg", calories:663, protein:46, carbs:67, fat:24, allergens:["Gluten","Peanuts","Fish","Soy"] },
 
-  { id:"358", name:"Simple Kitchen Gift Card", description:"Treat someone with a Simple Kitchen Gift Card.", price:20, priceOptions:[20,30,40,50,60,70,80,90,100], category:"gift", weeks:"always", image:"https://simplekitchenprep.com/wp-content/uploads/2025/02/IMG-20250511-WA0065.jpg" }
+  { id:"358", name:"Simple Kitchen Gift Card", description:"Treat someone with a Simple Kitchen Gift Card.", price:20, priceOptions:[20,30,40,50,60,70,80,90,100], category:"gift", weeks:"always", image:"https://simplekitchenprep.com/wp-content/uploads/revslider/slider-1/heropng2.png" }
 ];
 
 const expandedProducts=products.flatMap((product)=>
