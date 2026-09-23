@@ -1,0 +1,9 @@
+.next
+node_modules
+.env
+.env.local
+.env.production
+npm-debug.log*
+.DS_Store
+coverage
+data/woo-products.json
