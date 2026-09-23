@@ -53,3 +53,13 @@ export async function activeSubscriptionLinks(){
   );
   return result.rows;
 }
+
+
+export async function deactivateStripeSubscription(stripeSubscriptionId:string){
+  await ensureSubscriptionSchema();
+  const result=await db().query(
+    "UPDATE subscriptions SET status='cancelled',updated_at=now() WHERE stripe_subscription_id=$1 RETURNING customer_email",
+    [stripeSubscriptionId]
+  );
+  return result.rows[0]?.customer_email?String(result.rows[0].customer_email):"";
+}
