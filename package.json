@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "import:woo": "node --env-file=.env scripts/import-woo.mjs"
+    "import:woo": "node --env-file=.env scripts/import-woo.mjs",
+    "import:sms": "node --env-file=.env scripts/import-sms-audience.mjs"
   },
   "dependencies": {
     "luxon": "^3.7.2",
