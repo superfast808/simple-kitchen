@@ -4,6 +4,7 @@ import { productById } from "@/lib/catalog";
 import { config } from "@/lib/config";
 import { getMenuState } from "@/lib/cycle";
 import { givingIsActive, roundUpDonationPence } from "@/lib/giving";
+import { collectionAvailable, quoteDelivery } from "@/lib/fulfilment";
 import { attachStripeSession, CapacityError, markOrderStatus, reserveOrder } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
 
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
     const state = getMenuState();
     if (!Array.isArray(body.items) || body.items.length === 0) return NextResponse.json({ error:"Your basket is empty." }, { status:400 });
     if (!["delivery","collection"].includes(body.fulfilment)) return NextResponse.json({ error:"Choose delivery or collection." }, { status:400 });
+    if (body.fulfilment === "collection" && !collectionAvailable()) return NextResponse.json({ error:"Collection is currently unavailable." }, { status:400 });
     if (!body.customer?.name || !body.customer?.email) return NextResponse.json({ error:"Name and email are required." }, { status:400 });
     if (body.fulfilment === "delivery" && (!body.customer.address1 || !body.customer.postcode)) return NextResponse.json({ error:"A delivery address and postcode are required." }, { status:400 });
 
@@ -36,7 +38,16 @@ export async function POST(request: NextRequest) {
     if (subtotalPence < config.minimumOrderPence) {
       return NextResponse.json({ error:`Minimum order is £${(config.minimumOrderPence / 100).toFixed(2)}.` }, { status:400 });
     }
-    const shippingPence = body.fulfilment === "delivery" ? config.deliveryFeePence : 0;
+    let shippingPence = 0;
+    if (body.fulfilment === "delivery") {
+      const quote = quoteDelivery(body.customer.postcode || "");
+      if (!quote.allowed) return NextResponse.json({ error:quote.reason }, { status:400 });
+      const minimumPence = Math.max(config.minimumOrderPence, quote.minimumPence);
+      if (subtotalPence < minimumPence) {
+        return NextResponse.json({ error:`Minimum order for ${quote.zone?.name || "this delivery area"} is £${(minimumPence / 100).toFixed(2)}.` }, { status:400 });
+      }
+      shippingPence = quote.feePence;
+    }
     const donationPence = body.roundup && givingIsActive() ? roundUpDonationPence(subtotalPence + shippingPence) : 0;
 
     orderId = await reserveOrder({
