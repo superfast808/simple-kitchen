@@ -111,6 +111,10 @@ export async function reminderCandidates(at=DateTime.now().setZone(ZONE)){
      WHERE last_order_at >= $1
        AND last_order_at < $2
        AND active_subscription=false
+       AND NOT EXISTS (
+         SELECT 1 FROM subscriptions s
+         WHERE s.status='active' AND lower(s.customer_email)=lower(sms_audience.email)
+       )
        AND (last_reminder_week IS NULL OR last_reminder_week<>$3::date)
      ORDER BY last_order_at DESC`,
     [lookbackStart.toUTC().toISO(),weekStart.toUTC().toISO(),weekStart.toISODate()]
