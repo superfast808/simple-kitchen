@@ -3,18 +3,19 @@ import Stripe from "stripe";
 import { config } from "@/lib/config";
 import { sendMail } from "@/lib/mail";
 import { markOrderStatusBySession } from "@/lib/orders";
-import { getStripe } from "@/lib/stripe";
+import { getStripe,getStripeWebhookSecret } from "@/lib/stripe";
 import { deactivateStripeSubscription, upsertStripeSubscription } from "@/lib/subscriptions";
 import { recordPaidOrderAudienceBySession, setAudienceSubscriptionByEmail } from "@/lib/smsReminders";
 
 export async function POST(request:NextRequest){
   const signature=request.headers.get("stripe-signature");
-  if(!signature||!process.env.STRIPE_WEBHOOK_SECRET) return new NextResponse("Webhook not configured",{status:400});
+  const webhookSecret=await getStripeWebhookSecret();
+  if(!signature||!webhookSecret) return new NextResponse("Webhook not configured",{status:400});
 
   try{
     const raw=await request.text();
-    const stripe=getStripe();
-    const event=stripe.webhooks.constructEvent(raw,signature,process.env.STRIPE_WEBHOOK_SECRET);
+    const stripe=await getStripe();
+    const event=stripe.webhooks.constructEvent(raw,signature,webhookSecret);
 
     if(event.type==="checkout.session.completed"){
       const session=event.data.object as Stripe.Checkout.Session;
