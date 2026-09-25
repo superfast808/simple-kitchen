@@ -9,7 +9,7 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-8092}:3000"
     volumes:
-      - simple_kitchen_media:/app/data/media
+      - simple_kitchen_data:/app/data
 
   db:
     image: postgres:16-alpine
@@ -29,4 +29,4 @@ services:
 
 volumes:
   simple_kitchen_db:
-  simple_kitchen_media:
+  simple_kitchen_data:
