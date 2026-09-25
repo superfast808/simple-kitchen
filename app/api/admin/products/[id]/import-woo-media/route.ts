@@ -44,7 +44,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
     const images=Array.isArray(product.images)?product.images.slice(0,12):[];
     if(!images.length) return NextResponse.json({error:"Woo has no images for this product."},{status:404});
 
-    const dir=path.join(process.cwd(),"public","media","products",safeId(id));
+    const dir=path.join(process.cwd(),"data","media","products",safeId(id));
     await mkdir(dir,{recursive:true});
 
     let imported=0;
@@ -60,7 +60,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
       const buffer=Buffer.from(await response.arrayBuffer());
       if(buffer.length>15*1024*1024) throw new Error("Woo image is larger than 15 MB.");
       const ext=extensionFrom(contentType,source);
-      const filename="woo-"+String(images[index]?.id||index+1)+"-"+crypto.createHash("sha1").update(source).digest("hex").slice(0,8)+ext;
+      const filename="woo-"+String(images[index]?.id||index+1)+"-"+crypto.createHash("sha1").update(buffer).digest("hex").slice(0,8)+ext;
       await writeFile(path.join(dir,filename),buffer);
       await addProductMedia({
         productId:id,
