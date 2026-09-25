@@ -10,7 +10,7 @@ export async function POST(request:NextRequest){
   const id="custom-"+crypto.randomUUID();
   await saveProductOverride({
     productId:id,enabled:true,name:"New product",description:"Chef-prepared Simple Kitchen meal.",
-    pricePence:775,category:"main",week:1,image:"",userId:session.userId
+    pricePence:775,category:"main",week:1,image:"",longDescription:"",ingredients:"",userId:session.userId
   });
   await auditAdmin({userId:session.userId,actorEmail:session.email,action:"product.create",entityType:"product",entityId:id,ipAddress:requestIp(request)});
   return NextResponse.json({ok:true,product:{
