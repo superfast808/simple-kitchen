@@ -38,6 +38,7 @@ async function main(){
   const products=await paged("products",{context:"edit"});
   const categories=await paged("products/categories",{hide_empty:false});
   const tags=await paged("products/tags",{hide_empty:false});
+  const coupons=await paged("coupons",{context:"edit"});
   const variations={};
 
   for(const product of products){
@@ -73,6 +74,7 @@ async function main(){
     categories,
     tags,
     variations,
+    coupons,
     shipping
   };
 
@@ -87,7 +89,8 @@ async function main(){
       categories:categories.length,
       tags:tags.length,
       variations:Object.values(variations).reduce((sum,rows)=>sum+rows.length,0),
-      shippingZones:shipping.length
+      shippingZones:shipping.length,
+      coupons:coupons.length
     },
     products:products.map(product=>({
       id:product.id,
@@ -111,6 +114,29 @@ async function main(){
     variations,
     categories:categories.map(category=>({
       id:category.id,name:category.name,slug:category.slug,parent:category.parent,count:category.count
+    })),
+    coupons:coupons.map(coupon=>({
+      id:coupon.id,
+      code:coupon.code,
+      amount:coupon.amount,
+      status:coupon.status,
+      discount_type:coupon.discount_type,
+      description:coupon.description,
+      date_expires:coupon.date_expires,
+      individual_use:coupon.individual_use,
+      product_ids:coupon.product_ids||[],
+      excluded_product_ids:coupon.excluded_product_ids||[],
+      usage_limit:coupon.usage_limit,
+      usage_limit_per_user:coupon.usage_limit_per_user,
+      limit_usage_to_x_items:coupon.limit_usage_to_x_items,
+      free_shipping:coupon.free_shipping,
+      product_categories:coupon.product_categories||[],
+      excluded_product_categories:coupon.excluded_product_categories||[],
+      exclude_sale_items:coupon.exclude_sale_items,
+      minimum_amount:coupon.minimum_amount,
+      maximum_amount:coupon.maximum_amount,
+      email_restrictions:coupon.email_restrictions||[],
+      usage_count:coupon.usage_count
     })),
     shipping
   };
