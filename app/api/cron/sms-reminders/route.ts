@@ -24,8 +24,12 @@ async function scheduleDue(){
 
 export async function GET(request:NextRequest){
   if(!authorized(request)) return NextResponse.json({error:"Unauthorized"},{status:401});
-  try{return NextResponse.json(await runSmsReminders({dryRun:true}));}
-  catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Unable to preview SMS reminders."},{status:500});}
+  try{
+    const result=await runSmsReminders({dryRun:true});
+    return NextResponse.json(result);
+  }catch(error){
+    return NextResponse.json({error:error instanceof Error?error.message:"Unable to preview SMS reminders."},{status:500});
+  }
 }
 
 export async function POST(request:NextRequest){
