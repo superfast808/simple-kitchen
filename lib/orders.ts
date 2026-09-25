@@ -14,6 +14,9 @@ type ReserveInput = {
   subtotalPence: number;
   shippingPence: number;
   donationPence: number;
+  discountPence: number;
+  couponId?: string | null;
+  couponCode?: string | null;
   customer: Record<string, string>;
 };
 
@@ -49,13 +52,16 @@ export async function reserveOrder(input: ReserveInput) {
       }
     }
 
-    const totalPence = input.subtotalPence + input.shippingPence + input.donationPence;
+    const totalPence = Math.max(0,input.subtotalPence + input.shippingPence + input.donationPence - input.discountPence);
     const order = await client.query(
       `INSERT INTO orders
-       (cycle_key, fulfilment_date, fulfilment, subtotal_pence, shipping_pence, donation_pence, matched_donation_pence, total_pence, customer, expires_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8::jsonb,now()+interval '30 minutes')
+       (cycle_key, fulfilment_date, fulfilment, subtotal_pence, shipping_pence, donation_pence, matched_donation_pence, discount_pence, coupon_id, coupon_code, total_pence, customer, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11::jsonb,now()+interval '30 minutes')
        RETURNING id`,
-      [input.cycleKey, input.fulfilmentDate, input.fulfilment, input.subtotalPence, input.shippingPence, input.donationPence, totalPence, JSON.stringify(input.customer)]
+      [
+        input.cycleKey,input.fulfilmentDate,input.fulfilment,input.subtotalPence,input.shippingPence,input.donationPence,
+        input.discountPence,input.couponId||null,input.couponCode||null,totalPence,JSON.stringify(input.customer)
+      ]
     );
 
     for (const item of input.items) {
