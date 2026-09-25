@@ -38,12 +38,8 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
   async function toggle(item:Item){
     setMessage("");
     try{
-      const response=await fetch("/api/admin/products/"+encodeURIComponent(item.id),{
-        method:"PATCH",headers:{"content-type":"application/json"},
-        body:JSON.stringify({
-          enabled:!item.enabled,name:item.name,description:item.description,longDescription:item.description,ingredients:"",
-          pricePence:Math.round(item.price*100),category:item.category,week:item.week,image:item.image||""
-        })
+      const response=await fetch("/api/admin/products/"+encodeURIComponent(item.id)+"/status",{
+        method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({enabled:!item.enabled})
       });
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Unable to update product");
