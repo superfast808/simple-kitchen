@@ -47,8 +47,8 @@ export async function getRuntimeSubscriptionPlans():Promise<Record<SubscriptionC
       name:override.name||base.name,
       description:override.description||base.description,
       wooProductId:Number.isFinite(Number(override.wooProductId))?Number(override.wooProductId):base.wooProductId,
-      intervalWeeks:override.intervalWeeks===2?2:1,
-      fulfilmentsPerCycle:override.fulfilmentsPerCycle===2?2:1,
+      intervalWeeks:override.intervalWeeks===2?2:override.intervalWeeks===1?1:base.intervalWeeks,
+      fulfilmentsPerCycle:override.fulfilmentsPerCycle===2?2:override.fulfilmentsPerCycle===1?1:base.fulfilmentsPerCycle,
       options
     }];
   })) as Record<SubscriptionCadence,RuntimeSubscriptionPlan>;
