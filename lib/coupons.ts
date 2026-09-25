@@ -23,6 +23,8 @@ export type CouponRow={
   excluded_categories:string[];
   exclude_sale_items:boolean;
   allowed_emails:string[];
+  legacy_usage_count:number;
+  legacy_used_by:string[];
   source:string;
 };
 
@@ -56,6 +58,8 @@ async function ensureCouponSchema(){
           excluded_categories text[] NOT NULL DEFAULT '{}',
           exclude_sale_items boolean NOT NULL DEFAULT false,
           allowed_emails text[] NOT NULL DEFAULT '{}',
+          legacy_usage_count integer NOT NULL DEFAULT 0,
+          legacy_used_by text[] NOT NULL DEFAULT '{}',
           source text NOT NULL DEFAULT 'admin',
           created_at timestamptz NOT NULL DEFAULT now(),
           updated_at timestamptz NOT NULL DEFAULT now()
@@ -151,14 +155,15 @@ export async function validateCoupon(input:{
 
   if(coupon.usage_limit!=null){
     const usage=await db().query("SELECT COUNT(*)::int AS count FROM coupon_redemptions WHERE coupon_id=$1",[coupon.id]);
-    if(Number(usage.rows[0]?.count||0)>=Number(coupon.usage_limit)) throw new Error("This coupon has reached its usage limit.");
+    if(Number(coupon.legacy_usage_count||0)+Number(usage.rows[0]?.count||0)>=Number(coupon.usage_limit)) throw new Error("This coupon has reached its usage limit.");
   }
   if(coupon.usage_limit_per_customer!=null&&input.email){
     const usage=await db().query(
       "SELECT COUNT(*)::int AS count FROM coupon_redemptions WHERE coupon_id=$1 AND lower(customer_email)=lower($2)",
       [coupon.id,input.email]
     );
-    if(Number(usage.rows[0]?.count||0)>=Number(coupon.usage_limit_per_customer)) throw new Error("You have already used this coupon the maximum number of times.");
+    const legacyMatches=(coupon.legacy_used_by||[]).filter((value)=>String(value).toLowerCase()===input.email.toLowerCase()).length;
+    if(legacyMatches+Number(usage.rows[0]?.count||0)>=Number(coupon.usage_limit_per_customer)) throw new Error("You have already used this coupon the maximum number of times.");
   }
 
   let eligibleUnits=input.items
@@ -238,7 +243,7 @@ export async function listCoupons(){
   await ensureCouponSchema();
   const result=await db().query(`
     SELECT c.*,
-      COUNT(r.id)::int AS redemption_count,
+      (c.legacy_usage_count+COUNT(r.id))::int AS redemption_count,
       COALESCE(SUM(r.discount_pence),0)::int AS discount_total_pence
     FROM coupons c LEFT JOIN coupon_redemptions r ON r.coupon_id=c.id
     GROUP BY c.id
@@ -252,7 +257,7 @@ export async function upsertCoupon(input:{
   amount:number;enabled:boolean;expiryAt?:string|null;minimumAmountPence:number;maximumAmountPence?:number|null;
   usageLimit?:number|null;usageLimitPerCustomer?:number|null;limitUsageToXItems?:number|null;individualUse:boolean;
   freeShipping:boolean;productIds:string[];excludedProductIds:string[];categories:string[];excludedCategories:string[];
-  excludeSaleItems:boolean;allowedEmails:string[];source?:string;
+  excludeSaleItems:boolean;allowedEmails:string[];legacyUsageCount?:number;legacyUsedBy?:string[];source?:string;
 }){
   await ensureCouponSchema();
   const params=[
@@ -260,14 +265,14 @@ export async function upsertCoupon(input:{
     input.expiryAt||null,input.minimumAmountPence,input.maximumAmountPence??null,input.usageLimit??null,
     input.usageLimitPerCustomer??null,input.limitUsageToXItems??null,input.individualUse,input.freeShipping,
     input.productIds,input.excludedProductIds,input.categories,input.excludedCategories,input.excludeSaleItems,
-    input.allowedEmails,input.source||"admin"
+    input.allowedEmails,input.legacyUsageCount??0,input.legacyUsedBy||[],input.source||"admin"
   ];
   const result=await db().query(`
     INSERT INTO coupons
       (id,woo_id,code,description,discount_type,amount,enabled,expiry_at,minimum_amount_pence,maximum_amount_pence,
        usage_limit,usage_limit_per_customer,limit_usage_to_x_items,individual_use,free_shipping,product_ids,
-       excluded_product_ids,categories,excluded_categories,exclude_sale_items,allowed_emails,source)
-    VALUES (COALESCE($1::uuid,gen_random_uuid()),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+       excluded_product_ids,categories,excluded_categories,exclude_sale_items,allowed_emails,legacy_usage_count,legacy_used_by,source)
+    VALUES (COALESCE($1::uuid,gen_random_uuid()),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
     ON CONFLICT (lower(code)) DO UPDATE SET
       woo_id=COALESCE(EXCLUDED.woo_id,coupons.woo_id),description=EXCLUDED.description,discount_type=EXCLUDED.discount_type,
       amount=EXCLUDED.amount,enabled=EXCLUDED.enabled,expiry_at=EXCLUDED.expiry_at,minimum_amount_pence=EXCLUDED.minimum_amount_pence,
@@ -276,7 +281,8 @@ export async function upsertCoupon(input:{
       individual_use=EXCLUDED.individual_use,free_shipping=EXCLUDED.free_shipping,product_ids=EXCLUDED.product_ids,
       excluded_product_ids=EXCLUDED.excluded_product_ids,categories=EXCLUDED.categories,
       excluded_categories=EXCLUDED.excluded_categories,exclude_sale_items=EXCLUDED.exclude_sale_items,
-      allowed_emails=EXCLUDED.allowed_emails,source=EXCLUDED.source,updated_at=now()
+      allowed_emails=EXCLUDED.allowed_emails,legacy_usage_count=EXCLUDED.legacy_usage_count,
+      legacy_used_by=EXCLUDED.legacy_used_by,source=EXCLUDED.source,updated_at=now()
     RETURNING *`,
     params
   );
