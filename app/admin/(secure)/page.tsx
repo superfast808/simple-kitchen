@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { reminderCandidates } from "@/lib/smsReminders";
 import { getRuntimeMenuState } from "@/lib/cycle";
+import { getAdminSecret } from "@/lib/adminSettings";
+import { AdminStripePanel } from "@/components/admin/AdminStripePanel";
 
 export const dynamic="force-dynamic";
 
@@ -21,7 +23,12 @@ export default async function AdminDashboard(){
     db().query("SELECT id,created_at,status,fulfilment,total_pence,customer FROM orders ORDER BY created_at DESC LIMIT 6").catch(()=>({rows:[]})),
     reminderCandidates().catch(()=>({rows:[],weekStart:"",lookbackDays:90}))
   ]);
-  const state=await getRuntimeMenuState();
+  const [state,stripeKey,stripeWebhook]=await Promise.all([
+    getRuntimeMenuState(),
+    getAdminSecret("stripe_secret_key",process.env.STRIPE_SECRET_KEY||""),
+    getAdminSecret("stripe_webhook_secret",process.env.STRIPE_WEBHOOK_SECRET||"")
+  ]);
+  const stripeMode=stripeKey.startsWith("sk_live_")?"live":stripeKey.startsWith("sk_test_")?"test":stripeKey?"configured":"missing";
   const orders=orderStats.rows[0]||{};
   const subs=subStats.rows[0]||{};
 
@@ -53,6 +60,10 @@ export default async function AdminDashboard(){
           <Link href="/admin/system"><span>⌁</span><div><strong>System health</strong><small>Configuration and audit history</small></div><b>›</b></Link>
         </div>
       </section>
+    </div>
+
+    <div style={{marginTop:18}}>
+      <AdminStripePanel configured={Boolean(stripeKey)} webhookConfigured={Boolean(stripeWebhook)} mode={stripeMode}/>
     </div>
   </div>;
 }
