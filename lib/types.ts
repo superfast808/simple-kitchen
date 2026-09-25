@@ -9,6 +9,9 @@ export type Product={
   category:ProductCategory;
   weeks:number[]|"always";
   image?:string;
+  images?:string[];
+  longDescription?:string;
+  ingredients?:string;
   calories?:number;
   protein?:number;
   carbs?:number;
