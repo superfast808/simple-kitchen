@@ -1,0 +1,63 @@
+export type WooStyleShippingZone={
+  id:string;
+  name:string;
+  patterns:string[];
+  deliveryEnabled:boolean;
+  collectionEnabled:boolean;
+  feePence:number|null;
+  minimumPence:number|null;
+  freeDeliveryMinimumPence:number|null;
+};
+
+export const wooShippingSeed:WooStyleShippingZone[]=[
+  {
+    id:"woo-8",
+    name:"G66+",
+    patterns:["G66*","G67*","G82*"],
+    deliveryEnabled:false,
+    collectionEnabled:true,
+    feePence:null,
+    minimumPence:null,
+    freeDeliveryMinimumPence:null
+  },
+  {
+    id:"woo-6",
+    name:"PA7G46",
+    patterns:["PA7*"],
+    deliveryEnabled:true,
+    collectionEnabled:true,
+    feePence:null,
+    minimumPence:null,
+    freeDeliveryMinimumPence:null
+  },
+  {
+    id:"woo-7",
+    name:"PA16 offset",
+    patterns:["PA16*"],
+    deliveryEnabled:false,
+    collectionEnabled:true,
+    feePence:null,
+    minimumPence:null,
+    freeDeliveryMinimumPence:null
+  },
+  {
+    id:"woo-5",
+    name:"DeliveryZones",
+    patterns:["PA1*","PA2*","PA3*","PA4*","PA5*","PA6*","PA7*","PA8*","PA10*","G1*","G2*","G3*","G4*","G5*","G11*","G12*","G13*","G14*","G20*","G21*","G22*","G31*","G32*","G40*","G41*","G42*","G43*","G44*","G45*","G46*","G51*","G52*","G53*","G60*","G61*","G62*","G63*","G64*","G71*","G72*","G74*","G75*","G77*","G78*","G81*","G6*","G7*","G8*","G9*","G10*","G15*","G16*","G17*","G18*","G19*","G23*","G24*","G25*","G26*","G27*","G28*","G29*","G30*","G33*","G34*","G35*","G36*","G37*","G38*","G39*","G47*","G48*","G49*","G50*","G73*","G76*","ML1*","ML2*","ML3*","ML8*"],
+    deliveryEnabled:true,
+    collectionEnabled:true,
+    feePence:null,
+    minimumPence:null,
+    freeDeliveryMinimumPence:null
+  },
+  {
+    id:"woo-4",
+    name:"Everywhere",
+    patterns:[],
+    deliveryEnabled:false,
+    collectionEnabled:true,
+    feePence:null,
+    minimumPence:null,
+    freeDeliveryMinimumPence:null
+  }
+];
