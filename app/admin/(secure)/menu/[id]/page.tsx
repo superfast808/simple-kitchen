@@ -22,7 +22,7 @@ export default async function AdminProductPage({params}:{params:Promise<{id:stri
   const base=productById.get(id);
   if(!base&&!override) notFound();
 
-  const isCustom=!base;
+  const isCustom=id.startsWith("custom-");
   const week=override?.week!=null?Number(override.week):(base?.weeks==="always"?null:Number(base?.weeks?.[0]||1));
   const item={
     id,
