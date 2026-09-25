@@ -42,14 +42,14 @@ function apply(product:Product,override?:Override):Product|null{
 }
 
 function customProduct(row:Override):Product|null{
-  if(row.enabled===false||!row.name||row.price_pence==null||!row.category||row.week==null) return null;
+  if(row.enabled===false||!row.name||row.price_pence==null||!row.category) return null;
   return {
     id:row.product_id,
     name:row.name,
     description:row.description||"Chef-prepared Simple Kitchen meal.",
     price:Number(row.price_pence)/100,
     category:row.category as ProductCategory,
-    weeks:[Number(row.week)],
+    weeks:row.week==null?"always":[Number(row.week)],
     image:row.image||undefined
   };
 }
