@@ -101,6 +101,7 @@ function wildcardMatch(value:string,pattern:string){
 }
 
 function productEligible(coupon:CouponRow,product:Product){
+  if(coupon.source==="gift_card"&&product.category==="gift") return false;
   const id=rootProductId(product.id);
   if(coupon.product_ids?.length&&!coupon.product_ids.includes(id)) return false;
   if(coupon.excluded_product_ids?.includes(id)) return false;
@@ -160,7 +161,17 @@ export async function validateCoupon(input:{
   }
 
   const eligibleSubtotal=eligibleUnits.reduce((sum,value)=>sum+value,0);
-  const amount=Number(coupon.amount||0);
+  let amount=Number(coupon.amount||0);
+  if(coupon.source==="gift_card"){
+    const pending=await db().query(
+      `SELECT COALESCE(SUM(discount_pence),0)::int AS reserved
+       FROM orders
+       WHERE coupon_id=$1 AND status='pending' AND (expires_at IS NULL OR expires_at>now())`,
+      [coupon.id]
+    );
+    amount=Math.max(0,amount-Number(pending.rows[0]?.reserved||0)/100);
+    if(amount<=0) throw new Error("This gift card currently has no available balance.");
+  }
   let discountPence=0;
   if(coupon.discount_type==="percent"){
     discountPence=Math.round(eligibleSubtotal*Math.max(0,Math.min(100,amount))/100);
@@ -180,7 +191,8 @@ export async function validateCoupon(input:{
     discountPence,
     freeShipping:Boolean(coupon.free_shipping),
     wooId:coupon.woo_id,
-    discountType:coupon.discount_type
+    discountType:coupon.discount_type,
+    source:coupon.source
   };
 }
 
@@ -192,13 +204,24 @@ export async function recordCouponRedemptionBySession(sessionId:string){
   );
   const order=result.rows[0];
   if(!order) return false;
-  await db().query(
+  const inserted=await db().query(
     `INSERT INTO coupon_redemptions (coupon_id,order_id,customer_email,discount_pence)
      VALUES ($1,$2,$3,$4)
-     ON CONFLICT (coupon_id,order_id) DO NOTHING`,
+     ON CONFLICT (coupon_id,order_id) DO NOTHING
+     RETURNING id`,
     [order.coupon_id,order.id,order.customer?.email||"",Number(order.discount_pence||0)]
   );
-  return true;
+  if(inserted.rowCount){
+    await db().query(
+      `UPDATE coupons
+       SET amount=CASE WHEN source='gift_card' THEN GREATEST(0,amount-($2::numeric/100)) ELSE amount END,
+           enabled=CASE WHEN source='gift_card' AND amount-($2::numeric/100)<=0 THEN false ELSE enabled END,
+           updated_at=now()
+       WHERE id=$1`,
+      [order.coupon_id,Number(order.discount_pence||0)]
+    );
+  }
+  return Boolean(inserted.rowCount);
 }
 
 export async function listCoupons(){
