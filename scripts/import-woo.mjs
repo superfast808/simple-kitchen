@@ -61,6 +61,64 @@ function extensionFrom(contentType,url){
   return [".jpg",".jpeg",".png",".webp",".gif",".avif"].includes(ext)?(ext===".jpeg"?".jpg":ext):".jpg";
 }
 
+
+const WEEK_CATEGORY_IDS={18:1,19:2,28:3,29:4,30:5,31:6};
+
+function importedWeek(product){
+  for(const category of product.categories||[]){
+    const week=WEEK_CATEGORY_IDS[Number(category.id)];
+    if(week) return week;
+  }
+  return null;
+}
+
+function importedCategory(product){
+  const ids=new Set((product.categories||[]).map(category=>Number(category.id)));
+  const name=String(product.name||"").toLowerCase();
+  if(ids.has(27)) return "gift";
+  if(ids.has(38)||name.includes("special")) return "special";
+  if(name.includes("soup")) return "soup";
+  if(name.includes("oat")||name.includes("breakfast")) return "breakfast";
+  if(name.includes("cake")||name.includes("loaf")||name.includes("brownie")||name.includes("cookie")) return "treat";
+  return "main";
+}
+
+function catalogueEligible(product){
+  const ids=new Set((product.categories||[]).map(category=>Number(category.id)));
+  if(ids.has(24)||ids.has(34)) return false;
+  return importedWeek(product)!==null||ids.has(27);
+}
+
+async function importProductRecord(product){
+  if(!pool||!catalogueEligible(product)) return false;
+  const price=Number(product.price||product.regular_price);
+  if(!Number.isFinite(price)||price<0) return false;
+  const week=importedWeek(product);
+  const category=importedCategory(product);
+  const shortDescription=stripHtml(product.short_description||product.description||"");
+  const longDescription=stripHtml(product.description||product.short_description||"");
+  await pool.query(
+    `INSERT INTO product_overrides
+      (product_id,enabled,name,description,long_description,price_pence,category,week,updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now())
+     ON CONFLICT (product_id) DO UPDATE SET
+       enabled=COALESCE(product_overrides.enabled,EXCLUDED.enabled),
+       name=COALESCE(NULLIF(product_overrides.name,''),EXCLUDED.name),
+       description=COALESCE(NULLIF(product_overrides.description,''),EXCLUDED.description),
+       long_description=COALESCE(NULLIF(product_overrides.long_description,''),EXCLUDED.long_description),
+       price_pence=COALESCE(product_overrides.price_pence,EXCLUDED.price_pence),
+       category=COALESCE(NULLIF(product_overrides.category,''),EXCLUDED.category),
+       week=COALESCE(product_overrides.week,EXCLUDED.week),
+       updated_at=now()`,
+    [
+      String(product.id),String(product.status||"publish")==="publish",String(product.name||"Product"),
+      shortDescription||"Chef-prepared Simple Kitchen product.",longDescription||shortDescription||"",
+      Math.round(price*100),category,week
+    ]
+  );
+  return true;
+}
+
 async function ensureMediaSchema(){
   if(!pool) return;
   await pool.query(`
@@ -175,7 +233,9 @@ async function main(){
 
   await ensureMediaSchema();
   let mediaFiles=0;
+  let catalogProducts=0;
   for(const product of products){
+    if(await importProductRecord(product)) catalogProducts++;
     const count=await importProductMedia(product);
     mediaFiles+=count;
     if(count) console.log(`media ${product.id} ${product.name}: ${count}`);
@@ -190,7 +250,7 @@ async function main(){
     counts:{
       products:products.length,categories:categories.length,tags:tags.length,
       variations:Object.values(variations).reduce((sum,rows)=>sum+rows.length,0),
-      shippingZones:shipping.length,coupons:coupons.length,mediaFiles
+      shippingZones:shipping.length,coupons:coupons.length,mediaFiles,catalogProducts
     },
     products:products.map(product=>({
       id:product.id,name:product.name,slug:product.slug,status:product.status,type:product.type,sku:product.sku,
