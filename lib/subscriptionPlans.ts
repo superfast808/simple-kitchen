@@ -4,6 +4,7 @@ export type SubscriptionOption={
   meals:number;
   pricePence:number;
   wooVariationId:number;
+  enabled?:boolean;
 };
 
 export type SubscriptionPlan={
