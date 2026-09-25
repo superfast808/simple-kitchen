@@ -24,7 +24,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
     if(!files.length) return NextResponse.json({error:"Choose at least one image."},{status:400});
     if(files.length>12) return NextResponse.json({error:"Upload a maximum of 12 images at once."},{status:400});
 
-    const dir=path.join(process.cwd(),"public","media","products",safeId(id));
+    const dir=path.join(process.cwd(),"data","media","products",safeId(id));
     await mkdir(dir,{recursive:true});
     const created=[];
     for(const file of files){
