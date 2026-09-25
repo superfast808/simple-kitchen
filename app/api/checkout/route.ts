@@ -19,7 +19,7 @@ type Body={
   giftRecipientName?:string;
   giftRecipientEmail?:string;
   giftMessage?:string;
-  customer:{name:string;email:string;phone:string;address1?:string;address2?:string;city?:string;postcode?:string};
+  customer:{name:string;email:string;phone:string;address1?:string;address2?:string;city?:string;postcode?:string;giftRecipientName?:string;giftRecipientEmail?:string;giftMessage?:string};
 };
 
 export async function POST(request:NextRequest){
