@@ -24,6 +24,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
   }
 
   if(body.action==="cancel"){
+    if(subscription.source!=="stripe"||!subscription.stripe_subscription_id) return NextResponse.json({error:"This is a migrated Woo subscription and is not controlled by Stripe Billing here."},{status:409});
     if(subscription.status!=="active") return NextResponse.json({error:"Subscription is not active."},{status:409});
     const stripe=await getStripe();
     await stripe.subscriptions.cancel(String(subscription.stripe_subscription_id));
