@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS orders (
   cycle_key date NOT NULL,
   fulfilment_date date NOT NULL,
   status text NOT NULL DEFAULT 'pending',
-  fulfilment text NOT NULL CHECK (fulfilment IN ('collection','delivery')),
+  fulfilment text NOT NULL CHECK (fulfilment IN ('collection','delivery','electronic')),
   subtotal_pence integer NOT NULL,
   shipping_pence integer NOT NULL DEFAULT 0,
   donation_pence integer NOT NULL DEFAULT 0,
@@ -195,3 +195,6 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
   redeemed_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(coupon_id,order_id)
 );
+
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_fulfilment_check;
+ALTER TABLE orders ADD CONSTRAINT orders_fulfilment_check CHECK (fulfilment IN ('collection','delivery','electronic'));
