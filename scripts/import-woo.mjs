@@ -145,6 +145,10 @@ async function importProductMedia(product){
   if(!images.length) return 0;
   const dir=path.resolve("data","media","products",String(product.id));
   await fs.mkdir(dir,{recursive:true});
+  for(const filename of await fs.readdir(dir).catch(()=>[])){
+    if(filename.startsWith("woo-")) await fs.unlink(path.join(dir,filename)).catch(()=>undefined);
+  }
+  if(pool) await pool.query("DELETE FROM product_media WHERE product_id=$1 AND source='woo'",[String(product.id)]);
 
   let count=0;
   for(let index=0;index<images.length;index++){
