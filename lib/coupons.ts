@@ -246,8 +246,13 @@ export async function listCoupons(){
   const result=await db().query(`
     SELECT c.*,
       (c.legacy_usage_count+COUNT(r.id))::int AS redemption_count,
-      COALESCE(SUM(r.discount_pence),0)::int AS discount_total_pence
-    FROM coupons c LEFT JOIN coupon_redemptions r ON r.coupon_id=c.id
+      COALESCE(SUM(r.discount_pence),0)::int AS discount_total_pence,
+      MAX(g.delivered_at) AS gift_delivered_at,
+      MAX(g.recipient_email) AS gift_recipient_email,
+      MAX(g.order_id::text) AS gift_order_id
+    FROM coupons c
+    LEFT JOIN coupon_redemptions r ON r.coupon_id=c.id
+    LEFT JOIN gift_card_issuances g ON g.coupon_id=c.id
     GROUP BY c.id
     ORDER BY c.enabled DESC,c.updated_at DESC,c.code ASC
   `);
