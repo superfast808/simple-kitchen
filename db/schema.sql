@@ -180,6 +180,8 @@ CREATE TABLE IF NOT EXISTS coupons (
   excluded_categories text[] NOT NULL DEFAULT '{}',
   exclude_sale_items boolean NOT NULL DEFAULT false,
   allowed_emails text[] NOT NULL DEFAULT '{}',
+  legacy_usage_count integer NOT NULL DEFAULT 0,
+  legacy_used_by text[] NOT NULL DEFAULT '{}',
   source text NOT NULL DEFAULT 'admin',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -198,3 +200,6 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
 
 ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_fulfilment_check;
 ALTER TABLE orders ADD CONSTRAINT orders_fulfilment_check CHECK (fulfilment IN ('collection','delivery','electronic'));
+
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS legacy_usage_count integer NOT NULL DEFAULT 0;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS legacy_used_by text[] NOT NULL DEFAULT '{}';
