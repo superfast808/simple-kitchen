@@ -3,7 +3,7 @@ import { useMemo,useState } from "react";
 
 type Row={
   id:string;created_at:string;status:string;fulfilment:string;total_pence:number;shipping_pence:number;
-  customer:Record<string,string>;stripe_session_id?:string|null;items?:{name:string;quantity:number;unit_price_pence:number}[];
+  customer:Record<string,string>;stripe_session_id?:string|null;source?:string;woo_order_id?:number|null;woo_order_number?:string|null;payment_method_title?:string|null;items?:{name:string;quantity:number;unit_price_pence:number}[];
 };
 
 export function AdminOrdersClient({initialRows}:{initialRows:Row[]}){
@@ -15,7 +15,7 @@ export function AdminOrdersClient({initialRows}:{initialRows:Row[]}){
   const [message,setMessage]=useState("");
 
   const filtered=useMemo(()=>rows.filter((row)=>{
-    const hay=[row.customer?.name,row.customer?.email,row.customer?.phone,row.id].join(" ").toLowerCase();
+    const hay=[row.customer?.name,row.customer?.email,row.customer?.phone,row.id,row.woo_order_id,row.woo_order_number].join(" ").toLowerCase();
     return (!query||hay.includes(query.toLowerCase()))&&(status==="all"||row.status===status);
   }),[rows,query,status]);
 
@@ -43,7 +43,7 @@ export function AdminOrdersClient({initialRows}:{initialRows:Row[]}){
     <div className="admin-table-wrap" style={{marginTop:14}}><table className="admin-table"><thead><tr><th>Order</th><th>Customer</th><th>Fulfilment</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
       {filtered.map((row)=><>
         <tr key={row.id}>
-          <td><strong>{new Date(row.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</strong><small>{row.id.slice(0,8)}</small></td>
+          <td><strong>{new Date(row.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</strong><small>{row.source==="woo"?"Woo #"+(row.woo_order_number||row.woo_order_id):row.id.slice(0,8)}</small></td>
           <td><strong>{row.customer?.name||"Customer"}</strong><small>{row.customer?.email||""}<br/>{row.customer?.phone||""}</small></td>
           <td style={{textTransform:"capitalize"}}>{row.fulfilment}</td>
           <td><strong>£{(Number(row.total_pence)/100).toFixed(2)}</strong><small>{row.shipping_pence?"incl. £"+(row.shipping_pence/100).toFixed(2)+" delivery":"No delivery charge"}</small></td>
@@ -55,7 +55,7 @@ export function AdminOrdersClient({initialRows}:{initialRows:Row[]}){
         {expanded===row.id&&<tr key={row.id+"-detail"}><td colSpan={6}><div className="admin-order-detail">
           <div><strong>Items</strong>{(row.items||[]).map((item,index)=><div key={index}>{item.quantity} × {item.name} <small>£{(item.unit_price_pence/100).toFixed(2)} each</small></div>)}</div>
           <div><strong>Address / contact</strong><div>{row.customer?.address1||""}</div><div>{row.customer?.address2||""}</div><div>{row.customer?.city||""} {row.customer?.postcode||""}</div></div>
-          <div><strong>Stripe</strong><div className="admin-muted">{row.stripe_session_id||"No Stripe session"}</div></div>
+          <div><strong>{row.source==="woo"?"Payment source":"Stripe"}</strong><div className="admin-muted">{row.source==="woo"?(row.payment_method_title||"WooCommerce"):row.stripe_session_id||"No Stripe session"}</div></div>
         </div></td></tr>}
       </>)}
       {!filtered.length&&<tr><td colSpan={6}><div className="admin-empty">No matching orders.</div></td></tr>}
