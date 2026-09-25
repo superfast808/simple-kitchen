@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import type { Product } from "@/lib/types";
 import { useCart } from "./CartProvider";
@@ -9,6 +10,8 @@ export function ProductCard({ product }:{ product:Product }) {
   const [added,setAdded]=useState(false);
   const { add }=useCart();
   const isVariable=Boolean(product.priceOptions?.length);
+  const href="/product/"+encodeURIComponent(product.id);
+  const image=product.images?.[0]||product.image;
 
   function addProduct() {
     const chosen=isVariable
@@ -24,11 +27,12 @@ export function ProductCard({ product }:{ product:Product }) {
     : "£"+product.price.toFixed(2);
 
   return <article className={product.featured?"product-card product-featured":"product-card"}>
-    <div className="product-image-wrap"><img className="product-image" src={product.image} alt="" loading="lazy"/>{product.featured&&<span className="product-badge">SK Special</span>}</div>
+    <Link href={href} className="product-image-wrap">{image?<img className="product-image" src={image} alt={product.name} loading="lazy"/>:<div className="product-image-placeholder">Simple Kitchen</div>}{product.featured&&<span className="product-badge">SK Special</span>}</Link>
     <div className="product-body">
       <div className="product-category">{product.category}</div>
-      <h3>{product.name}</h3><p>{product.description}</p>
+      <h3><Link href={href}>{product.name}</Link></h3><p>{product.description}</p>
       {product.allergens?.length?<div className="allergens">Contains: {product.allergens.join(", ")}</div>:null}
+      <Link className="product-detail-link" href={href}>View details →</Link>
       <div className="product-bottom"><strong>{priceText}</strong>
         <div className="product-actions">
           {isVariable
