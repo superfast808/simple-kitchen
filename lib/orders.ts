@@ -5,6 +5,20 @@ import type { Fulfilment, Product } from "./types";
 export class CapacityError extends Error {}
 export class CouponReservationError extends Error {}
 
+let orderSchemaReady:Promise<void>|null=null;
+async function ensureOrderSchema(){
+  if(!orderSchemaReady){
+    orderSchemaReady=db().query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_id uuid;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code text;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_pence integer NOT NULL DEFAULT 0;
+      ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_fulfilment_check;
+      ALTER TABLE orders ADD CONSTRAINT orders_fulfilment_check CHECK (fulfilment IN ('collection','delivery','electronic'));
+    `).then(()=>undefined);
+  }
+  await orderSchemaReady;
+}
+
 type ReservedItem = { product: Product; quantity: number };
 
 type ReserveInput = {
@@ -27,6 +41,7 @@ const ACTIVE_SQL = `(
 )`;
 
 export async function reserveOrder(input: ReserveInput) {
+  await ensureOrderSchema();
   const runtime=await getRuntimeCommerceSettings();
   return transaction(async (client) => {
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [input.cycleKey]);
