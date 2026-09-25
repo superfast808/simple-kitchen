@@ -1,9 +1,9 @@
 import path from "node:path";
 import crypto from "node:crypto";
-import { mkdir,writeFile } from "node:fs/promises";
+import { mkdir,unlink,writeFile } from "node:fs/promises";
 import { NextRequest,NextResponse } from "next/server";
 import { auditAdmin,requestIp,requireAdminApi,sameOriginMutation } from "@/lib/adminAuth";
-import { addProductMedia,getProductMedia } from "@/lib/productMedia";
+import { addProductMedia,clearProductMediaSource,getProductMedia } from "@/lib/productMedia";
 
 export const runtime="nodejs";
 
@@ -46,6 +46,13 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
 
     const dir=path.join(process.cwd(),"data","media","products",safeId(id));
     await mkdir(dir,{recursive:true});
+    const oldWooPaths=await clearProductMediaSource(id,"woo");
+    for(const oldPath of oldWooPaths){
+      if(oldPath.startsWith("/media/products/")){
+        const target=path.join(process.cwd(),"data","media",oldPath.replace(/^\/media\//,""));
+        await unlink(target).catch(()=>undefined);
+      }
+    }
 
     let imported=0;
     for(let index=0;index<images.length;index++){
