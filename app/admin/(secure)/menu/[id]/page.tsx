@@ -36,6 +36,7 @@ export default async function AdminProductPage({params}:{params:Promise<{id:stri
     image:override?.image||base?.image||"",
     enabled:override?.enabled===false?false:true,
     isCustom,
+    canReset:Boolean(base),
     hasOverride:Boolean(override),
     media:media.map((entry)=>({id:entry.id,urlPath:entry.urlPath,altText:entry.altText,sortOrder:entry.sortOrder,isPrimary:entry.isPrimary,source:entry.source}))
   };
