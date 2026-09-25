@@ -409,7 +409,7 @@ async function importSubscription(subscription){
      RETURNING id,selection_token`,
     [
       created,iso(subscription.date_modified_gmt||subscription.date_modified)||created,subscriptionStatus(subscription.status),
-      stripe.stripeSubscriptionId,stripe.stripeCustomerId,String(billing.email||"").toLowerCase(),
+      null,stripe.stripeCustomerId,String(billing.email||"").toLowerCase(),
       [billing.first_name,billing.last_name].filter(Boolean).join(" "),meals,fulfilment,cadenceWeeks(subscription,plan),plan,
       JSON.stringify(shipping),pence(subscription.shipping_total),Number(subscription.id),Number(subscription.parent_id||0)||null,
       Number(subscription.customer_id||0)||null,String(subscription.payment_method||""),String(subscription.payment_method_title||""),
@@ -420,7 +420,7 @@ async function importSubscription(subscription){
       iso(subscription.end_date_gmt||subscription.end_date),
       JSON.stringify(billing),JSON.stringify(shipping),
       JSON.stringify({
-        line_items:subscription.line_items||[],coupon_lines:subscription.coupon_lines||[],fee_lines:subscription.fee_lines||[],
+        legacy_stripe_subscription_id:stripe.stripeSubscriptionId,line_items:subscription.line_items||[],coupon_lines:subscription.coupon_lines||[],fee_lines:subscription.fee_lines||[],
         shipping_lines:subscription.shipping_lines||[],meta_data:subscription.meta_data||[],
         trial_end_date_gmt:subscription.trial_end_date_gmt,resubscribed_from:subscription.resubscribed_from,
         resubscribed_subscription:subscription.resubscribed_subscription
@@ -492,11 +492,11 @@ async function main(){
   await ensureSchema();
 
   console.log("\nFetching Woo customers...");
-  const customers=(await paged("customers",{orderby:"registered_date",order:"asc"},true))||[];
+  const customers=(await paged("customers",{},true))||[];
   for(const customer of customers) await importCustomer(customer);
 
   console.log("\nFetching Woo orders...");
-  const orders=(await paged("orders",{orderby:"date",order:"asc"}))||[];
+  const orders=(await paged("orders",{status:"any",orderby:"date",order:"asc"}))||[];
   for(let index=0;index<orders.length;index++){
     await importOrder(orders[index]);
     if((index+1)%50===0||index===orders.length-1) console.log("orders imported: "+(index+1)+"/"+orders.length);
