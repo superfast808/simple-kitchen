@@ -122,8 +122,35 @@ async function importProductRecord(product){
 async function ensureMediaSchema(){
   if(!pool) return;
   await pool.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+    CREATE TABLE IF NOT EXISTS product_overrides (
+      product_id text PRIMARY KEY,
+      enabled boolean,
+      name text,
+      description text,
+      long_description text,
+      ingredients text,
+      price_pence integer,
+      category text,
+      week integer,
+      image text,
+      updated_by uuid,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS enabled boolean;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS name text;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS description text;
     ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS long_description text;
     ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS ingredients text;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS price_pence integer;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS category text;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS week integer;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS image text;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS updated_by uuid;
+    ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
     CREATE TABLE IF NOT EXISTS product_media (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       product_id text NOT NULL,
@@ -136,7 +163,8 @@ async function ensureMediaSchema(){
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE(product_id,url_path)
-    )
+    );
+    CREATE INDEX IF NOT EXISTS product_media_product_idx ON product_media (product_id,sort_order);
   `);
 }
 
