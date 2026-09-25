@@ -32,7 +32,7 @@ export async function POST(request:NextRequest){
 
     const resolved=await Promise.all(body.items.map(async(item)=>{
       const product=await getRuntimeProductById(item.id);
-      const quantity=Math.max(1,Math.min(20,Math.floor(Number(item.quantity)||1));
+      const quantity=Math.max(1,Math.min(20,Math.floor(Number(item.quantity)||1)));
       if(!product) throw new Error("A product in your basket is no longer available.");
       if(product.weeks!=="always"&&(!state.open||!product.weeks.includes(state.week))) throw new Error(product.name+" is not available in the current menu window.");
       return {product,quantity};
