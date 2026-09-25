@@ -18,4 +18,4 @@ export type Product={
 };
 
 export type CartItem={ product:Product; quantity:number };
-export type Fulfilment="collection"|"delivery";
+export type Fulfilment="collection"|"delivery"|"electronic";
