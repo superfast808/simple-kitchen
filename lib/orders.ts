@@ -1,4 +1,4 @@
-import { config } from "./config";
+import { getRuntimeCommerceSettings } from "./runtimeConfig";
 import { db, transaction } from "./db";
 import type { Fulfilment, Product } from "./types";
 
@@ -23,6 +23,7 @@ const ACTIVE_SQL = `(
 )`;
 
 export async function reserveOrder(input: ReserveInput) {
+  const runtime=await getRuntimeCommerceSettings();
   return transaction(async (client) => {
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [input.cycleKey]);
 
@@ -33,7 +34,7 @@ export async function reserveOrder(input: ReserveInput) {
        WHERE o.cycle_key=$1 AND ${ACTIVE_SQL}`,
       [input.cycleKey]
     );
-    if (Number(used.rows[0].used) + itemCount > config.weeklyItemCap) {
+    if (Number(used.rows[0].used) + itemCount > runtime.weeklyItemCap) {
       throw new CapacityError("We have SOLD OUT for this week. Please keep an eye on @simplekitchenprep for the next menu.");
     }
 
@@ -43,7 +44,7 @@ export async function reserveOrder(input: ReserveInput) {
          WHERE o.fulfilment_date=$1 AND o.fulfilment='delivery' AND ${ACTIVE_SQL}`,
         [input.fulfilmentDate]
       );
-      if (Number(deliveries.rows[0].used) >= config.deliverySlotCap) {
+      if (Number(deliveries.rows[0].used) >= runtime.deliverySlotCap) {
         throw new CapacityError("Delivery slots are full for this week. Collection is still available.");
       }
     }
@@ -78,6 +79,7 @@ export async function markOrderStatusBySession(sessionId: string, status: string
 }
 
 export async function getCapacity(cycleKey: string, fulfilmentDate: string) {
+  const runtime=await getRuntimeCommerceSettings();
   const item = await db().query(
     `SELECT COALESCE(SUM(oi.quantity),0)::int AS used FROM orders o JOIN order_items oi ON oi.order_id=o.id
      WHERE o.cycle_key=$1 AND ${ACTIVE_SQL}`,
@@ -89,7 +91,7 @@ export async function getCapacity(cycleKey: string, fulfilmentDate: string) {
     [fulfilmentDate]
   );
   return {
-    weeklyRemaining: Math.max(0, config.weeklyItemCap - Number(item.rows[0].used)),
-    deliveryRemaining: Math.max(0, config.deliverySlotCap - Number(delivery.rows[0].used))
+    weeklyRemaining: Math.max(0, runtime.weeklyItemCap - Number(item.rows[0].used)),
+    deliveryRemaining: Math.max(0, runtime.deliverySlotCap - Number(delivery.rows[0].used))
   };
 }
