@@ -47,6 +47,8 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
     const dir=path.join(process.cwd(),"data","media","products",safeId(id));
     await mkdir(dir,{recursive:true});
     const oldWooPaths=await clearProductMediaSource(id,"woo");
+    const existingAfterClear=await getProductMedia(id);
+    const wooShouldBePrimary=existingAfterClear.length===0;
     for(const oldPath of oldWooPaths){
       if(oldPath.startsWith("/media/products/")){
         const target=path.join(process.cwd(),"data","media",oldPath.replace(/^\/media\//,""));
@@ -75,7 +77,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
         altText:String(images[index]?.alt||product.name||""),
         source:"woo",
         originalUrl:source,
-        isPrimary:index===0
+        isPrimary:index===0&&wooShouldBePrimary
       });
       imported++;
     }
