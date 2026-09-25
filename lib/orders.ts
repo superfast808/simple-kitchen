@@ -3,6 +3,7 @@ import { db, transaction } from "./db";
 import type { Fulfilment, Product } from "./types";
 
 export class CapacityError extends Error {}
+export class CouponReservationError extends Error {}
 
 type ReservedItem = { product: Product; quantity: number };
 
@@ -29,6 +30,56 @@ export async function reserveOrder(input: ReserveInput) {
   const runtime=await getRuntimeCommerceSettings();
   return transaction(async (client) => {
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [input.cycleKey]);
+
+    if(input.couponId){
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",["coupon:"+input.couponId]);
+      const couponResult=await client.query(
+        "SELECT * FROM coupons WHERE id=$1 FOR UPDATE",
+        [input.couponId]
+      );
+      const coupon=couponResult.rows[0];
+      if(!coupon||!coupon.enabled) throw new CouponReservationError("This coupon is no longer available.");
+      if(coupon.expiry_at&&new Date(coupon.expiry_at).getTime()<Date.now()) throw new CouponReservationError("This coupon has expired.");
+
+      const pending=await client.query(
+        `SELECT COUNT(*)::int AS uses,COALESCE(SUM(discount_pence),0)::int AS discount
+         FROM orders
+         WHERE coupon_id=$1 AND status='pending' AND (expires_at IS NULL OR expires_at>now())`,
+        [input.couponId]
+      );
+      const redeemed=await client.query(
+        "SELECT COUNT(*)::int AS uses FROM coupon_redemptions WHERE coupon_id=$1",
+        [input.couponId]
+      );
+
+      if(coupon.usage_limit!=null){
+        const totalUses=Number(coupon.legacy_usage_count||0)+Number(redeemed.rows[0]?.uses||0)+Number(pending.rows[0]?.uses||0);
+        if(totalUses>=Number(coupon.usage_limit)) throw new CouponReservationError("This coupon has reached its usage limit.");
+      }
+
+      if(coupon.usage_limit_per_customer!=null&&input.customer.email){
+        const email=String(input.customer.email).toLowerCase();
+        const legacy=(coupon.legacy_used_by||[]).filter((value:string)=>String(value).toLowerCase()===email).length;
+        const usedBy=await client.query(
+          "SELECT COUNT(*)::int AS uses FROM coupon_redemptions WHERE coupon_id=$1 AND lower(customer_email)=lower($2)",
+          [input.couponId,input.customer.email]
+        );
+        const pendingBy=await client.query(
+          `SELECT COUNT(*)::int AS uses FROM orders
+           WHERE coupon_id=$1 AND status='pending' AND (expires_at IS NULL OR expires_at>now())
+             AND lower(customer->>'email')=lower($2)`,
+          [input.couponId,input.customer.email]
+        );
+        if(legacy+Number(usedBy.rows[0]?.uses||0)+Number(pendingBy.rows[0]?.uses||0)>=Number(coupon.usage_limit_per_customer)){
+          throw new CouponReservationError("You have already used this coupon the maximum number of times.");
+        }
+      }
+
+      if(coupon.source==="gift_card"){
+        const availablePence=Math.max(0,Math.round(Number(coupon.amount||0)*100)-Number(pending.rows[0]?.discount||0));
+        if(input.discountPence>availablePence) throw new CouponReservationError("This gift card no longer has enough available balance.");
+      }
+    }
 
     const itemCount = input.items.filter((item)=>item.product.category!=="gift").reduce((sum, item) => sum + item.quantity, 0);
     const used = await client.query(
