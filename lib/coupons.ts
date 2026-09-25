@@ -293,8 +293,10 @@ export async function upsertCoupon(input:{
 
 export async function deleteCoupon(id:string){
   await ensureCouponSchema();
+  const coupon=await db().query("SELECT source FROM coupons WHERE id=$1",[id]);
+  if(!coupon.rowCount) return "deleted";
   const usage=await db().query("SELECT COUNT(*)::int AS count FROM coupon_redemptions WHERE coupon_id=$1",[id]);
-  if(Number(usage.rows[0]?.count||0)>0){
+  if(String(coupon.rows[0].source)==="gift_card"||Number(usage.rows[0]?.count||0)>0){
     await db().query("UPDATE coupons SET enabled=false,updated_at=now() WHERE id=$1",[id]);
     return "disabled";
   }
