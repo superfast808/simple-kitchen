@@ -148,7 +148,12 @@ async function importProductMedia(product){
   for(const filename of await fs.readdir(dir).catch(()=>[])){
     if(filename.startsWith("woo-")) await fs.unlink(path.join(dir,filename)).catch(()=>undefined);
   }
-  if(pool) await pool.query("DELETE FROM product_media WHERE product_id=$1 AND source='woo'",[String(product.id)]);
+  let preserveExistingPrimary=false;
+  if(pool){
+    await pool.query("DELETE FROM product_media WHERE product_id=$1 AND source='woo'",[String(product.id)]);
+    const remaining=await pool.query("SELECT COUNT(*)::int AS count FROM product_media WHERE product_id=$1",[String(product.id)]);
+    preserveExistingPrimary=Number(remaining.rows[0]?.count||0)>0;
+  }
 
   let count=0;
   for(let index=0;index<images.length;index++){
@@ -178,14 +183,14 @@ async function importProductMedia(product){
     const urlPath=`/media/products/${product.id}/${filename}`;
 
     if(pool){
-      if(index===0) await pool.query("UPDATE product_media SET is_primary=false WHERE product_id=$1",[String(product.id)]);
+      if(index===0&&!preserveExistingPrimary) await pool.query("UPDATE product_media SET is_primary=false WHERE product_id=$1",[String(product.id)]);
       await pool.query(
         `INSERT INTO product_media (product_id,url_path,alt_text,sort_order,is_primary,source,original_url)
          VALUES ($1,$2,$3,$4,$5,'woo',$6)
          ON CONFLICT (product_id,url_path) DO UPDATE SET
            alt_text=EXCLUDED.alt_text,sort_order=EXCLUDED.sort_order,is_primary=EXCLUDED.is_primary,
            source='woo',original_url=EXCLUDED.original_url,updated_at=now()`,
-        [String(product.id),urlPath,String(image?.alt||product.name||""),index,index===0,source]
+        [String(product.id),urlPath,String(image?.alt||product.name||""),index,index===0&&!preserveExistingPrimary,source]
       );
     }
     count++;
