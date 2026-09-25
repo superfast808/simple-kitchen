@@ -3,7 +3,7 @@ import { useMemo,useState } from "react";
 
 type Item={
   id:string;name:string;description:string;price:number;category:string;week:number|null;image?:string;
-  enabled:boolean;hasOverride:boolean;
+  enabled:boolean;hasOverride:boolean;isCustom:boolean;
 };
 
 export function AdminMenuClient({initial}:{initial:Item[]}){
@@ -20,6 +20,19 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
 
   function patchLocal(id:string,patch:Partial<Item>){
     setItems((current)=>current.map((item)=>item.id===id?{...item,...patch}:item));
+  }
+
+  async function createProduct(){
+    setSaving("new");setMessage("");
+    try{
+      const response=await fetch("/api/admin/products",{method:"POST"});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"Unable to create product");
+      setItems((current)=>[data.product,...current]);
+      setWeek("all");setQuery("");
+      setMessage("New product created — fill in the details and save.");
+    }catch(error){setMessage(error instanceof Error?error.message:"Unable to create product");}
+    finally{setSaving(null);}
   }
 
   async function save(item:Item){
@@ -40,19 +53,23 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
     finally{setSaving(null);}
   }
 
-  async function reset(id:string){
-    if(!confirm("Reset this product to the imported/default values?")) return;
-    setSaving(id);setMessage("");
+  async function removeOrReset(item:Item){
+    const wording=item.isCustom?"Delete this custom product?":"Reset this product to the imported/default values?";
+    if(!confirm(wording)) return;
+    setSaving(item.id);setMessage("");
     try{
-      const response=await fetch("/api/admin/products/"+encodeURIComponent(id),{method:"DELETE"});
+      const response=await fetch("/api/admin/products/"+encodeURIComponent(item.id),{method:"DELETE"});
       const data=await response.json();
-      if(!response.ok) throw new Error(data.error||"Reset failed");
-      window.location.reload();
-    }catch(error){setMessage(error instanceof Error?error.message:"Reset failed");setSaving(null);}
+      if(!response.ok) throw new Error(data.error||"Action failed");
+      if(item.isCustom) setItems((current)=>current.filter((row)=>row.id!==item.id));
+      else window.location.reload();
+    }catch(error){setMessage(error instanceof Error?error.message:"Action failed");}
+    finally{setSaving(null);}
   }
 
   return <div>
     <div className="admin-toolbar" style={{marginBottom:15}}>
+      <button className="admin-primary" disabled={saving==="new"} onClick={createProduct}>{saving==="new"?"Creating…":"+ New product"}</button>
       <input className="admin-input" style={{maxWidth:300}} placeholder="Search products…" value={query} onChange={(e)=>setQuery(e.target.value)}/>
       <select className="admin-input" style={{maxWidth:180}} value={week} onChange={(e)=>setWeek(e.target.value)}>
         <option value="all">All menu weeks</option>
@@ -61,12 +78,12 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
       </select>
       <span className="admin-muted">{visible.length} products</span>
     </div>
-    {message&&<div className={message.includes("saved")?"admin-alert success":"admin-alert danger"}>{message}</div>}
+    {message&&<div className={message.includes("saved")||message.includes("created")?"admin-alert success":"admin-alert danger"}>{message}</div>}
     <div className="admin-product-admin-grid">
       {visible.map((item)=><article className="admin-product-editor" key={item.id}>
         <div className="admin-product-editor-head">
           <img src={item.image||""} alt=""/>
-          <div><strong>{item.name}</strong><small>Woo/source ID {item.id}</small></div>
+          <div><strong>{item.name}</strong><small>{item.isCustom?"Admin product":"Woo/source ID "+item.id}</small></div>
           <button type="button" className={item.enabled?"admin-switch on":"admin-switch"} onClick={()=>patchLocal(item.id,{enabled:!item.enabled})} title={item.enabled?"Disable":"Enable"}></button>
         </div>
         <div className="admin-form">
@@ -80,7 +97,7 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
           </div>
           <div className="admin-toolbar">
             <button className="admin-primary" disabled={saving===item.id} onClick={()=>save(item)}>{saving===item.id?"Saving…":"Save product"}</button>
-            {item.hasOverride&&<button className="admin-secondary" disabled={saving===item.id} onClick={()=>reset(item.id)}>Reset override</button>}
+            {(item.hasOverride||item.isCustom)&&<button className={item.isCustom?"admin-danger":"admin-secondary"} disabled={saving===item.id} onClick={()=>removeOrReset(item)}>{item.isCustom?"Delete product":"Reset override"}</button>}
           </div>
         </div>
       </article>)}
