@@ -262,20 +262,37 @@ export async function upsertCoupon(input:{
   excludeSaleItems:boolean;allowedEmails:string[];legacyUsageCount?:number;legacyUsedBy?:string[];source?:string;
 }){
   await ensureCouponSchema();
-  const params=[
-    input.id||null,input.wooId??null,input.code.trim(),input.description||"",input.discountType,input.amount,input.enabled,
+  const values=[
+    input.wooId??null,input.code.trim(),input.description||"",input.discountType,input.amount,input.enabled,
     input.expiryAt||null,input.minimumAmountPence,input.maximumAmountPence??null,input.usageLimit??null,
     input.usageLimitPerCustomer??null,input.limitUsageToXItems??null,input.individualUse,input.freeShipping,
     input.productIds,input.excludedProductIds,input.categories,input.excludedCategories,input.excludeSaleItems,
     input.allowedEmails,input.legacyUsageCount??0,input.legacyUsedBy||[],input.source||"admin"
   ];
+
+  if(input.id){
+    const result=await db().query(`
+      UPDATE coupons SET
+        woo_id=COALESCE($2,woo_id),code=$3,description=$4,discount_type=$5,amount=$6,enabled=$7,expiry_at=$8,
+        minimum_amount_pence=$9,maximum_amount_pence=$10,usage_limit=$11,usage_limit_per_customer=$12,
+        limit_usage_to_x_items=$13,individual_use=$14,free_shipping=$15,product_ids=$16,excluded_product_ids=$17,
+        categories=$18,excluded_categories=$19,exclude_sale_items=$20,allowed_emails=$21,
+        legacy_usage_count=$22,legacy_used_by=$23,source=$24,updated_at=now()
+      WHERE id=$1
+      RETURNING *`,
+      [input.id,...values]
+    );
+    if(!result.rowCount) throw new Error("Coupon not found.");
+    return result.rows[0];
+  }
+
   const result=await db().query(`
     INSERT INTO coupons
-      (id,woo_id,code,description,discount_type,amount,enabled,expiry_at,minimum_amount_pence,maximum_amount_pence,
+      (woo_id,code,description,discount_type,amount,enabled,expiry_at,minimum_amount_pence,maximum_amount_pence,
        usage_limit,usage_limit_per_customer,limit_usage_to_x_items,individual_use,free_shipping,product_ids,
        excluded_product_ids,categories,excluded_categories,exclude_sale_items,allowed_emails,legacy_usage_count,legacy_used_by,source)
-    VALUES (COALESCE($1::uuid,gen_random_uuid()),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
-    ON CONFLICT (lower(code)) DO UPDATE SET
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+    ON CONFLICT ((lower(code))) DO UPDATE SET
       woo_id=COALESCE(EXCLUDED.woo_id,coupons.woo_id),description=EXCLUDED.description,discount_type=EXCLUDED.discount_type,
       amount=EXCLUDED.amount,enabled=EXCLUDED.enabled,expiry_at=EXCLUDED.expiry_at,minimum_amount_pence=EXCLUDED.minimum_amount_pence,
       maximum_amount_pence=EXCLUDED.maximum_amount_pence,usage_limit=EXCLUDED.usage_limit,
@@ -286,7 +303,7 @@ export async function upsertCoupon(input:{
       allowed_emails=EXCLUDED.allowed_emails,legacy_usage_count=EXCLUDED.legacy_usage_count,
       legacy_used_by=EXCLUDED.legacy_used_by,source=EXCLUDED.source,updated_at=now()
     RETURNING *`,
-    params
+    values
   );
   return result.rows[0];
 }
