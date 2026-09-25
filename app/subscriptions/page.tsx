@@ -1,14 +1,16 @@
 import { SubscriptionOptions } from "@/components/SubscriptionOptions";
-import { config } from "@/lib/config";
-import { subscriptionPlans } from "@/lib/subscriptionPlans";
+import { getRuntimeSubscriptionPlans } from "@/lib/runtimeSubscriptions";
 
-export default function SubscriptionsPage(){
-  const plans=[subscriptionPlans.weekly,subscriptionPlans.fortnightly];
+export const dynamic="force-dynamic";
+
+export default async function SubscriptionsPage(){
+  const all=await getRuntimeSubscriptionPlans();
+  const plans=Object.values(all).filter((plan)=>plan.enabled&&plan.public);
   return <>
-    <section className="page-hero"><div className="shell narrow"><div className="eyebrow">Meal subscriptions</div><h1>Subscriptions</h1><p>Join us on a subscription basis. Choose weekly or fortnightly meals, then use your personal link to select the meals you want from each live menu.</p></div></section>
+    <section className="page-hero"><div className="shell narrow"><div className="eyebrow">Meal subscriptions</div><h1>Subscriptions</h1><p>Choose the subscription rhythm that suits you, then select your meals from each live menu.</p></div></section>
     <section className="section shell subscription-layout">
-      <div><div className="eyebrow">Subscribe to Simple Kitchen</div><h2>Meals sorted around you</h2><p>The live WooCommerce store offers weekly and fortnightly subscriptions with meal quantities from 4 to 30.</p><ul className="tick-list"><li>Weekly or fortnightly billing</li><li>Choose different meals each cycle</li><li>Delivery or collection</li><li>Secure Stripe billing</li></ul></div>
-      <SubscriptionOptions plans={plans} deliveryFee={config.deliveryFeePence}/>
+      <div><div className="eyebrow">Subscribe to Simple Kitchen</div><h2>Meals sorted around you</h2><p>Choose your meal quantity, then collection or an eligible delivery area. Delivery is postcode-checked before payment.</p><ul className="tick-list"><li>Flexible meal quantities</li><li>Choose different meals each cycle</li><li>Delivery or collection</li><li>Secure Stripe billing</li></ul></div>
+      {plans.length?<SubscriptionOptions plans={plans}/>:<div className="subscription-box"><div className="error-box">New subscriptions are temporarily unavailable.</div></div>}
     </section>
   </>;
 }
