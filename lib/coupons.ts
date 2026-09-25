@@ -131,6 +131,10 @@ function productEligible(coupon:CouponRow,product:Product){
   if(coupon.source==="gift_card"&&product.category==="gift") return false;
   const id=rootProductId(product.id);
   const categoryIds=wooCategoryIds(product);
+  if(product.category==="gift"&&coupon.source!=="gift_card"){
+    const explicitlyIncluded=coupon.product_ids?.includes(id)||coupon.categories?.includes("27");
+    if(!explicitlyIncluded) return false;
+  }
   if(coupon.product_ids?.length&&!coupon.product_ids.includes(id)) return false;
   if(coupon.excluded_product_ids?.includes(id)) return false;
   if(coupon.categories?.length&&!coupon.categories.some((id)=>categoryIds.includes(String(id)))) return false;
