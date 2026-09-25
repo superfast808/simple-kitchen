@@ -7,7 +7,8 @@ type DeliveryQuote={allowed:boolean;reason:string;zone:{id:string;name:string}|n
 export function SubscriptionOptions({plans}:{plans:SubscriptionPlan[]}){
   const [cadence,setCadence]=useState<SubscriptionCadence>((plans[0]?.id||"weekly") as SubscriptionCadence);
   const plan=plans.find((item)=>item.id===cadence)||plans[0];
-  const [meals,setMeals]=useState(plan?.options[0]?.meals||4);
+  const availableOptions=plan?.options.filter((item)=>item.enabled!==false)||[];
+  const [meals,setMeals]=useState(availableOptions[0]?.meals||4);
   const [fulfilment,setFulfilment]=useState<"collection"|"delivery">("collection");
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
@@ -20,7 +21,7 @@ export function SubscriptionOptions({plans}:{plans:SubscriptionPlan[]}){
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
 
-  const selected=useMemo(()=>plan?.options.find((item)=>item.meals===meals)||plan?.options[0],[plan,meals]);
+  const selected=useMemo(()=>availableOptions.find((item)=>item.meals===meals)||availableOptions[0],[availableOptions,meals]);
 
   useEffect(()=>{
     if(fulfilment!=="delivery"||postcode.trim().length<5){setQuote(null);return;}
@@ -44,7 +45,8 @@ export function SubscriptionOptions({plans}:{plans:SubscriptionPlan[]}){
   function changeCadence(value:SubscriptionCadence){
     setCadence(value);
     const next=plans.find((item)=>item.id===value);
-    if(next&&!next.options.some((item)=>item.meals===meals)) setMeals(next.options[0].meals);
+    const options=next?.options.filter((item)=>item.enabled!==false)||[];
+    if(next&&!options.some((item)=>item.meals===meals)&&options[0]) setMeals(options[0].meals);
     setQuote(null);
   }
 
@@ -76,7 +78,7 @@ export function SubscriptionOptions({plans}:{plans:SubscriptionPlan[]}){
 
     <label className="subscription-meal-select">Meal Quantity
       <select value={meals} onChange={(e)=>setMeals(Number(e.target.value))}>
-        {plan.options.map((option)=><option value={option.meals} key={option.meals}>{option.meals} meals — £{(option.pricePence/100).toFixed(2)}</option>)}
+        {availableOptions.map((option)=><option value={option.meals} key={option.meals}>{option.meals} meals — £{(option.pricePence/100).toFixed(2)}</option>)}
       </select>
     </label>
 
