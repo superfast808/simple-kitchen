@@ -100,13 +100,23 @@ function wildcardMatch(value:string,pattern:string){
   return true;
 }
 
+function wooCategoryIds(product:Product){
+  if(product.category==="gift") return ["27"];
+  if(product.weeks!=="always"){
+    const map:Record<number,string>={1:"18",2:"19",3:"28",4:"29",5:"30",6:"31"};
+    return product.weeks.map((week)=>map[week]).filter(Boolean);
+  }
+  return [];
+}
+
 function productEligible(coupon:CouponRow,product:Product){
   if(coupon.source==="gift_card"&&product.category==="gift") return false;
   const id=rootProductId(product.id);
+  const categoryIds=wooCategoryIds(product);
   if(coupon.product_ids?.length&&!coupon.product_ids.includes(id)) return false;
   if(coupon.excluded_product_ids?.includes(id)) return false;
-  if(coupon.categories?.length&&!coupon.categories.includes(product.category)) return false;
-  if(coupon.excluded_categories?.includes(product.category)) return false;
+  if(coupon.categories?.length&&!coupon.categories.some((id)=>categoryIds.includes(String(id)))) return false;
+  if(coupon.excluded_categories?.some((id)=>categoryIds.includes(String(id)))) return false;
   return true;
 }
 
