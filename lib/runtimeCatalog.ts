@@ -41,12 +41,29 @@ function apply(product:Product,override?:Override):Product|null{
   };
 }
 
+function customProduct(row:Override):Product|null{
+  if(row.enabled===false||!row.name||row.price_pence==null||!row.category||row.week==null) return null;
+  return {
+    id:row.product_id,
+    name:row.name,
+    description:row.description||"Chef-prepared Simple Kitchen meal.",
+    price:Number(row.price_pence)/100,
+    category:row.category as ProductCategory,
+    weeks:[Number(row.week)],
+    image:row.image||undefined
+  };
+}
+
 export async function getRuntimeProducts(){
   try{
     await ensureSchema();
     const result=await db().query("SELECT product_id,enabled,name,description,price_pence,category,week,image FROM product_overrides");
-    const map=new Map(result.rows.map((row)=>[String(row.product_id),row as Override]));
-    return products.map((product)=>apply(product,map.get(product.id))).filter(Boolean) as Product[];
+    const overrides=result.rows as Override[];
+    const map=new Map(overrides.map((row)=>[String(row.product_id),row]));
+    const staticIds=new Set(products.map((product)=>product.id));
+    const base=products.map((product)=>apply(product,map.get(product.id))).filter(Boolean) as Product[];
+    const custom=overrides.filter((row)=>!staticIds.has(row.product_id)).map(customProduct).filter(Boolean) as Product[];
+    return [...base,...custom];
   }catch{
     return products;
   }
@@ -59,14 +76,17 @@ export async function getRuntimeProductsForWeek(week:number,menuOpen:boolean){
 
 export async function getRuntimeProductById(id:string){
   const base=productById.get(id);
-  if(!base) return null;
-  const overrideId=id.includes("-")?id.split("-")[0]:id;
   try{
     await ensureSchema();
-    const result=await db().query("SELECT product_id,enabled,name,description,price_pence,category,week,image FROM product_overrides WHERE product_id=$1",[overrideId]);
-    return apply(base,result.rows[0] as Override|undefined);
+    if(base){
+      const overrideId=/^\d+-\d+$/.test(id)?id.split("-")[0]:id;
+      const result=await db().query("SELECT product_id,enabled,name,description,price_pence,category,week,image FROM product_overrides WHERE product_id=$1",[overrideId]);
+      return apply(base,result.rows[0] as Override|undefined);
+    }
+    const custom=await db().query("SELECT product_id,enabled,name,description,price_pence,category,week,image FROM product_overrides WHERE product_id=$1",[id]);
+    return custom.rows[0]?customProduct(custom.rows[0] as Override):null;
   }catch{
-    return base;
+    return base||null;
   }
 }
 
