@@ -99,7 +99,7 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
             <label>Category<select value={item.category} onChange={(e)=>patchLocal(item.id,{category:e.target.value})}>{["main","breakfast","soup","treat","special","gift"].map((value)=><option key={value} value={value}>{value}</option>)}</select></label>
             <label>Legacy/fallback image URL<input value={item.image||""} onChange={(e)=>patchLocal(item.id,{image:e.target.value})}/><span className="admin-help">Only used until a local gallery image exists.</span></label>
           </div>
-          <AdminProductMedia productId={item.id} initial={item.media} isWoo={!item.isCustom&&/^\d+$/.test(item.id)}/>
+          <AdminProductMedia productId={item.id} initial={item.media} isWoo={!item.isCustom&&/^\d+$/.test(item.id)} onChange={(media)=>patchLocal(item.id,{media})}/>
           <div className="admin-toolbar">
             <button className="admin-primary" disabled={saving===item.id} onClick={()=>save(item)}>{saving===item.id?"Saving…":"Save product"}</button>
             {(item.hasOverride||item.isCustom)&&<button className={item.isCustom?"admin-danger":"admin-secondary"} disabled={saving===item.id} onClick={()=>removeOrReset(item)}>{item.isCustom?"Delete product":"Reset override"}</button>}
