@@ -30,7 +30,7 @@ export async function reserveOrder(input: ReserveInput) {
   return transaction(async (client) => {
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [input.cycleKey]);
 
-    const itemCount = input.items.reduce((sum, item) => sum + item.quantity, 0);
+    const itemCount = input.items.filter((item)=>item.product.category!=="gift").reduce((sum, item) => sum + item.quantity, 0);
     const used = await client.query(
       `SELECT COALESCE(SUM(oi.quantity),0)::int AS used
        FROM orders o JOIN order_items oi ON oi.order_id=o.id
