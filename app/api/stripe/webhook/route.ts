@@ -34,7 +34,15 @@ export async function POST(request:NextRequest){
           meals:Number(session.metadata.meals),
           fulfilment:session.metadata.fulfilment==="delivery"?"delivery":"collection",
           cadenceWeeks:Number(session.metadata.intervalWeeks)||1,
-          sourcePlan:session.metadata.plan||"weekly"
+          sourcePlan:session.metadata.plan||"weekly",
+          deliveryAddress:{
+            address1:session.metadata.address1||"",
+            address2:session.metadata.address2||"",
+            city:session.metadata.city||"",
+            postcode:session.metadata.postcode||""
+          },
+          deliveryZone:session.metadata.deliveryZone||"",
+          deliveryFeePence:Number(session.metadata.deliveryFeePence)||0
         });
         await setAudienceSubscriptionByEmail(email,true);
         const url=config.siteUrl+"/subscription-select?token="+token;
