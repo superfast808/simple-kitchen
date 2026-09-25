@@ -16,7 +16,7 @@ export async function POST(request:NextRequest){
       getRuntimeCommerceSettings()
     ]);
     if(!plan.enabled) return NextResponse.json({error:"This subscription plan is not currently available."},{status:409});
-    const option=plan.options.find((item)=>item.meals===Number(body.meals));
+    const option=plan.options.find((item)=>item.meals===Number(body.meals)&&item.enabled!==false);
     if(!option) return NextResponse.json({error:"Choose a valid subscription quantity."},{status:400});
     if(!body.email||!body.name) return NextResponse.json({error:"Name and email are required."},{status:400});
     if(!["delivery","collection"].includes(body.fulfilment)) return NextResponse.json({error:"Choose delivery or collection."},{status:400});
