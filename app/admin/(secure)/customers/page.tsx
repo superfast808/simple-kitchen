@@ -8,13 +8,19 @@ export default async function AdminCustomersPage(){
   await ensureCustomerSchema();
   const result=await db().query(`
     SELECT u.id,u.email,u.first_name,u.last_name,u.phone,u.enabled,u.email_verified,u.created_at,u.last_login_at,
-      COUNT(DISTINCT o.id)::int AS orders_count,
-      COALESCE(SUM(DISTINCT CASE WHEN o.id IS NOT NULL THEN o.total_pence ELSE NULL END),0)::int AS spend_pence,
-      COUNT(DISTINCT s.id) FILTER (WHERE s.status='active')::int AS active_subscriptions
+      COALESCE(o.orders_count,0)::int AS orders_count,
+      COALESCE(o.spend_pence,0)::int AS spend_pence,
+      COALESCE(s.active_subscriptions,0)::int AS active_subscriptions
     FROM customer_users u
-    LEFT JOIN orders o ON lower(o.customer->>'email')=lower(u.email) AND o.status IN ('paid','processing','completed')
-    LEFT JOIN subscriptions s ON lower(s.customer_email)=lower(u.email)
-    GROUP BY u.id
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS orders_count,COALESCE(SUM(total_pence),0)::int AS spend_pence
+      FROM orders
+      WHERE lower(customer->>'email')=lower(u.email) AND status IN ('paid','processing','completed')
+    ) o ON true
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*) FILTER (WHERE status='active')::int AS active_subscriptions
+      FROM subscriptions WHERE lower(customer_email)=lower(u.email)
+    ) s ON true
     ORDER BY u.created_at DESC
   `).catch(()=>({rows:[]}));
   return <div className="admin-page">
