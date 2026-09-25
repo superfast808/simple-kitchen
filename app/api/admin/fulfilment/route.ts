@@ -16,13 +16,16 @@ export async function POST(request:NextRequest){
     const zones=Array.isArray(body.deliveryZones)?body.deliveryZones:[];
     const cleanedZones=zones.map((raw,index)=>{
       const zone=(raw||{}) as Record<string,unknown>;
+      const freeRaw=zone.freeDeliveryMinimumPence;
       return {
         id:String(zone.id||"zone-"+(index+1)).slice(0,80),
-        name:String(zone.name||"Delivery area").slice(0,120),
-        prefixes:Array.isArray(zone.prefixes)?zone.prefixes.map((value)=>String(value).toUpperCase().replace(/\s+/g,"").slice(0,8)).filter(Boolean).slice(0,100):[],
+        name:String(zone.name||"Shipping zone").slice(0,120),
+        patterns:Array.isArray(zone.patterns)?zone.patterns.map((value)=>String(value).toUpperCase().replace(/\s+/g,"").replace(/[^A-Z0-9*]/g,"").slice(0,12)).filter(Boolean).slice(0,150):[],
+        deliveryEnabled:zone.deliveryEnabled===true,
+        collectionEnabled:zone.collectionEnabled!==false,
         feePence:Math.max(0,Math.round(Number(zone.feePence)||0)),
         minimumPence:Math.max(0,Math.round(Number(zone.minimumPence)||0)),
-        enabled:zone.enabled!==false
+        freeDeliveryMinimumPence:freeRaw==null||freeRaw===""?null:Math.max(0,Math.round(Number(freeRaw)||0))
       };
     });
     const entries:[string,unknown][]=[
@@ -32,13 +35,13 @@ export async function POST(request:NextRequest){
       ["minimum_order_pence",positiveInt("minimumOrderPence",0)],
       ["delivery_enabled",body.deliveryEnabled===true],
       ["collection_enabled",body.collectionEnabled===true],
-      ["delivery_require_zone_match",body.deliveryRequireZoneMatch===true],
+      ["delivery_require_zone_match",true],
       ["delivery_zones",cleanedZones]
     ];
     await Promise.all(entries.map(([key,value])=>setAdminSetting(key,value,session.userId)));
-    await auditAdmin({userId:session.userId,actorEmail:session.email,action:"fulfilment.update",entityType:"settings",detail:{zones:cleanedZones.length},ipAddress:requestIp(request)});
+    await auditAdmin({userId:session.userId,actorEmail:session.email,action:"fulfilment.update",entityType:"shipping_zones",detail:{zones:cleanedZones.length,strict:true},ipAddress:requestIp(request)});
     return NextResponse.json({ok:true});
   }catch(error){
-    return NextResponse.json({error:error instanceof Error?error.message:"Unable to save fulfilment settings."},{status:400});
+    return NextResponse.json({error:error instanceof Error?error.message:"Unable to save shipping zones."},{status:400});
   }
 }
