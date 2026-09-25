@@ -121,3 +121,21 @@ export async function deleteProductMedia(productId:string,mediaId:string){
   }
   return String(result.rows[0].url_path);
 }
+
+
+export async function clearProductMediaSource(productId:string,source:string){
+  await ensureProductMediaSchema();
+  const result=await db().query(
+    "DELETE FROM product_media WHERE product_id=$1 AND source=$2 RETURNING url_path",
+    [productId,source]
+  );
+  const primary=await db().query("SELECT 1 FROM product_media WHERE product_id=$1 AND is_primary=true LIMIT 1",[productId]);
+  if(!primary.rowCount){
+    await db().query(
+      `UPDATE product_media SET is_primary=true
+       WHERE id=(SELECT id FROM product_media WHERE product_id=$1 ORDER BY sort_order,created_at LIMIT 1)`,
+      [productId]
+    );
+  }
+  return result.rows.map((row)=>String(row.url_path));
+}
