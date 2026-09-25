@@ -7,9 +7,14 @@ async function ensureSubscriptionSchema(){
     schemaReady=(async()=>{
       await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cadence_weeks integer NOT NULL DEFAULT 1");
       await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS source_plan text NOT NULL DEFAULT 'weekly'");
+      await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS selection_token uuid NOT NULL DEFAULT gen_random_uuid()");
       await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_address jsonb");
       await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_zone text");
       await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_fee_pence integer NOT NULL DEFAULT 0");
+      await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_customer_id text");
+      await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS customer_name text");
+      await db().query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()");
+      await db().query("CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_selection_token_unique_idx ON subscriptions (selection_token)");
     })();
   }
   await schemaReady;
