@@ -8,9 +8,12 @@ export const dynamic="force-dynamic";
 export default async function AdminSubscriptionsPage(){
   const [result,planMap]=await Promise.all([
     db().query(`
-      SELECT s.*,COUNT(ss.id)::int AS selection_count
+      SELECT s.*,
+        COUNT(DISTINCT ss.id)::int AS selection_count,
+        COUNT(DISTINCT sh.id)::int AS history_count
       FROM subscriptions s
       LEFT JOIN subscription_selections ss ON ss.subscription_id=s.id
+      LEFT JOIN subscription_history sh ON sh.subscription_id=s.id
       GROUP BY s.id
       ORDER BY s.created_at DESC
       LIMIT 250
