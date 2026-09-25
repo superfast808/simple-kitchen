@@ -62,7 +62,7 @@ export async function POST(request:NextRequest){
       customer:body.customer
     });
 
-    const stripe=getStripe();
+    const stripe=await getStripe();
     const line_items:Stripe.Checkout.SessionCreateParams.LineItem[]=resolved.map(({product,quantity})=>({
       quantity,
       price_data:{
