@@ -20,14 +20,14 @@ type CouponPreview={
   source:string;
 };
 
-export function CheckoutClient(){
+export function CheckoutClient({initialCustomer}:{initialCustomer?:{name:string;email:string;phone:string}}){
   const {items,subtotal}=useCart();
   const [fulfilment,setFulfilment]=useState<"collection"|"delivery">("collection");
   const [roundup,setRoundup]=useState(false);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [postcode,setPostcode]=useState("");
-  const [email,setEmail]=useState("");
+  const [email,setEmail]=useState(initialCustomer?.email||"");
   const [checkingPostcode,setCheckingPostcode]=useState(false);
   const [deliveryQuote,setDeliveryQuote]=useState<DeliveryQuote|null>(null);
   const [collectionAllowed,setCollectionAllowed]=useState(true);
@@ -162,9 +162,9 @@ export function CheckoutClient(){
     <div className="checkout-form">
       <h2>Your details</h2>
       <div className="field-grid">
-        <label>Full name<input name="name" required/></label>
+        <label>Full name<input name="name" defaultValue={initialCustomer?.name||""} required/></label>
         <label>Email<input name="email" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required/></label>
-        <label>Phone<input name="phone" type="tel" required={!giftOnly}/></label>
+        <label>Phone<input name="phone" type="tel" defaultValue={initialCustomer?.phone||""} required={!giftOnly}/></label>
       </div>
 
       {hasGift&&<div className="giving-card" style={{display:"block"}}>
