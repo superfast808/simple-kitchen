@@ -37,6 +37,18 @@ export function AdminFulfilmentClient({initial}:{initial:Settings}){
     });
   }
 
+  async function syncWoo(){
+    setSaving(true);setMessage("");
+    try{
+      const response=await fetch("/api/admin/fulfilment/import-woo",{method:"POST"});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"Woo shipping sync failed");
+      setValue((current)=>({...current,deliveryZones:data.zones}));
+      setMessage("Woo shipping zones synced and saved.");
+    }catch(error){setMessage(error instanceof Error?error.message:"Woo shipping sync failed");}
+    finally{setSaving(false);}
+  }
+
   async function save(){
     setSaving(true);setMessage("");
     try{
@@ -63,7 +75,7 @@ export function AdminFulfilmentClient({initial}:{initial:Settings}){
     </section>
 
     <section className="admin-panel" style={{gridColumn:"1/-1"}}>
-      <div className="admin-panel-head"><div><h2>Shipping zones</h2><p>Woo-style first-match priority. Higher zones win over broader zones beneath them.</p></div><button className="admin-secondary" onClick={addZone}>+ Add zone</button></div>
+      <div className="admin-panel-head"><div><h2>Shipping zones</h2><p>Woo-style first-match priority. Higher zones win over broader zones beneath them.</p></div><div className="admin-toolbar"><button className="admin-secondary" disabled={saving} onClick={syncWoo}>↻ Sync Woo</button><button className="admin-secondary" onClick={addZone}>+ Add zone</button></div></div>
       <div className="admin-card-list">
         {value.deliveryZones.map((zone,index)=><div className="admin-zone-editor" key={zone.id}>
           <div className="admin-zone-head">
