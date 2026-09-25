@@ -242,6 +242,9 @@ async function ensureSchema(){
   await pool.query(`
     CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+    ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_fulfilment_check;
+    ALTER TABLE orders ADD CONSTRAINT orders_fulfilment_check CHECK (fulfilment IN ('collection','delivery','electronic'));
+
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'native';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS woo_order_id bigint;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS woo_parent_order_id bigint;
