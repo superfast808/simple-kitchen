@@ -9,6 +9,7 @@ const links=[
   ["/admin/subscriptions","Subscriptions","↻"],
   ["/admin/customers","Customers","◎"],
   ["/admin/menu","Menu & products","◫"],
+  ["/admin/content","Content & heroes","▣"],
   ["/admin/weeks","Weeks & schedule","◷"],
   ["/admin/coupons","Coupons & gift cards","%"],
   ["/admin/fulfilment","Delivery & collection","⌖"],
