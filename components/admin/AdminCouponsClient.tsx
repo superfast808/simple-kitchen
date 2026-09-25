@@ -8,6 +8,7 @@ type Coupon={
   usage_limit:number|null;usage_limit_per_customer:number|null;limit_usage_to_x_items:number|null;individual_use:boolean;
   free_shipping:boolean;product_ids:string[];excluded_product_ids:string[];categories:string[];excluded_categories:string[];
   exclude_sale_items:boolean;allowed_emails:string[];source:string;redemption_count:number;discount_total_pence:number;
+  gift_delivered_at?:string|null;gift_recipient_email?:string|null;gift_order_id?:string|null;
 };
 
 const categories=[
@@ -82,6 +83,20 @@ export function AdminCouponsClient({initialRows,products}:{initialRows:Coupon[];
     finally{setBusy("");}
   }
 
+  async function resendGift(coupon:Coupon){
+    setBusy("gift-"+coupon.id);setMessage("");
+    try{
+      const response=await fetch("/api/admin/coupons/"+coupon.id+"/resend-gift",{method:"POST"});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"Unable to resend gift card");
+      const deliveredAt=data.deliveredAt||new Date().toISOString();
+      setRows((current)=>current.map((row)=>row.id===coupon.id?{...row,gift_delivered_at:deliveredAt}:row));
+      setSelected((current)=>current?.id===coupon.id?{...current,gift_delivered_at:deliveredAt}:current);
+      setMessage("Gift card emailed to "+data.recipient+".");
+    }catch(error){setMessage(error instanceof Error?error.message:"Unable to resend gift card");}
+    finally{setBusy("");}
+  }
+
   async function syncWoo(){
     setBusy("sync");setMessage("");
     try{
@@ -115,7 +130,13 @@ export function AdminCouponsClient({initialRows,products}:{initialRows:Coupon[];
     <section className="admin-panel admin-coupon-editor">
       {!selected?<div className="admin-empty"><h3>Select a code</h3><p>Edit an existing coupon or create a new one.</p></div>:<>
         <div className="admin-panel-head"><div><h2>{selected.id?selected.code:"New coupon"}</h2><p>{selected.source==="gift_card"?"Stored-value e-gift card":"Commerce discount rule"}</p></div>{selected.id&&<span className="admin-badge">{selected.source}</span>}</div>
-        {selected.source==="gift_card"?<div className="admin-alert success">Gift-card balance is transactional and protected. You can disable the code, but its balance is changed only by confirmed redemptions.</div>:null}
+        {selected.source==="gift_card"?<>
+          <div className="admin-alert success">Gift-card balance is transactional and protected. You can disable the code, but its balance is changed only by confirmed redemptions.</div>
+          <div className="admin-card-row">
+            <div><strong>E-delivery</strong><small>{selected.gift_recipient_email||"Recipient email unavailable"} · {selected.gift_delivered_at?"Delivered "+new Date(selected.gift_delivered_at).toLocaleString("en-GB"):"Not yet marked delivered"}</small></div>
+            <button className="admin-secondary" disabled={busy==="gift-"+selected.id||!selected.gift_recipient_email} onClick={()=>resendGift(selected)}>{busy==="gift-"+selected.id?"Sending…":"Resend e-gift"}</button>
+          </div>
+        </>:null}
         <div className="admin-form">
           <div className="admin-switch-row"><div><strong>Enabled</strong><small>Disabled codes cannot be applied at checkout.</small></div><button className={selected.enabled?"admin-switch on":"admin-switch"} onClick={()=>patch({enabled:!selected.enabled})}></button></div>
           <div className="admin-form-grid">
