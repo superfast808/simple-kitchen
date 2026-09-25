@@ -29,7 +29,7 @@ export type CouponRow={
 };
 
 let schemaReady:Promise<void>|null=null;
-async function ensureCouponSchema(){
+export async function ensureCouponSchema(){
   if(!schemaReady){
     schemaReady=(async()=>{
       await db().query(`
@@ -64,6 +64,8 @@ async function ensureCouponSchema(){
           created_at timestamptz NOT NULL DEFAULT now(),
           updated_at timestamptz NOT NULL DEFAULT now()
         );
+        ALTER TABLE coupons ADD COLUMN IF NOT EXISTS legacy_usage_count integer NOT NULL DEFAULT 0;
+        ALTER TABLE coupons ADD COLUMN IF NOT EXISTS legacy_used_by text[] NOT NULL DEFAULT '{}';
         CREATE UNIQUE INDEX IF NOT EXISTS coupons_code_unique_idx ON coupons (lower(code));
         CREATE TABLE IF NOT EXISTS coupon_redemptions (
           id bigserial PRIMARY KEY,
