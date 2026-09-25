@@ -6,7 +6,7 @@ import { AdminProductMedia } from "./AdminProductMedia";
 type Media={id:string;urlPath:string;altText:string;sortOrder:number;isPrimary:boolean;source:string};
 type ProductEditorItem={
   id:string;name:string;description:string;longDescription:string;ingredients:string;price:number;category:string;week:number|null;
-  image:string;enabled:boolean;isCustom:boolean;hasOverride:boolean;media:Media[];
+  image:string;enabled:boolean;isCustom:boolean;canReset:boolean;hasOverride:boolean;media:Media[];
 };
 
 export function AdminProductEditor({initial}:{initial:ProductEditorItem}){
@@ -67,7 +67,7 @@ export function AdminProductEditor({initial}:{initial:ProductEditorItem}){
           <label>Category<select value={item.category} onChange={(e)=>patch({category:e.target.value})}>{["main","breakfast","soup","treat","special","gift"].map((value)=><option key={value} value={value}>{value}</option>)}</select></label>
           <label>Legacy/fallback image URL<input value={item.image} onChange={(e)=>patch({image:e.target.value})}/><span className="admin-help">Only used when no local gallery image exists.</span></label>
         </div>
-        <div className="admin-card-row"><div><strong>Source</strong><small>{item.isCustom?"Created in Simple Kitchen admin":"Woo/source product #"+item.id}</small></div><span className={item.enabled?"admin-badge active":"admin-badge cancelled"}>{item.enabled?"Active":"Disabled"}</span></div>
+        <div className="admin-card-row"><div><strong>Source</strong><small>{item.isCustom?"Created in Simple Kitchen admin":item.canReset?"Built-in / Woo source product #"+item.id:"Imported Woo product #"+item.id}</small></div><span className={item.enabled?"admin-badge active":"admin-badge cancelled"}>{item.enabled?"Active":"Disabled"}</span></div>
       </div>
     </section>
 
@@ -80,7 +80,7 @@ export function AdminProductEditor({initial}:{initial:ProductEditorItem}){
       <div className="admin-toolbar">
         <button className="admin-primary" disabled={saving} onClick={save}>{saving?"Saving…":"Save product"}</button>
         <a className="admin-secondary" href={"/product/"+encodeURIComponent(item.id)} target="_blank" rel="noreferrer">Preview product ↗</a>
-        <button className={item.isCustom?"admin-danger":"admin-secondary"} disabled={saving} onClick={removeOrReset}>{item.isCustom?"Delete product":"Reset override"}</button>
+        {(item.isCustom||item.canReset)&&<button className={item.isCustom?"admin-danger":"admin-secondary"} disabled={saving} onClick={removeOrReset}>{item.isCustom?"Delete product":"Reset override"}</button>}
       </div>
     </section>
   </div>;
