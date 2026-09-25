@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { reminderCandidates } from "@/lib/smsReminders";
-import { getMenuState } from "@/lib/cycle";
+import { getRuntimeMenuState } from "@/lib/cycle";
 
 export const dynamic="force-dynamic";
 
@@ -21,12 +21,12 @@ export default async function AdminDashboard(){
     db().query("SELECT id,created_at,status,fulfilment,total_pence,customer FROM orders ORDER BY created_at DESC LIMIT 6").catch(()=>({rows:[]})),
     reminderCandidates().catch(()=>({rows:[],weekStart:"",lookbackDays:90}))
   ]);
-  const state=getMenuState();
+  const state=await getRuntimeMenuState();
   const orders=orderStats.rows[0]||{};
   const subs=subStats.rows[0]||{};
 
   return <div className="admin-page">
-    <header className="admin-page-head"><div><div className="admin-kicker">Friday operations</div><h1>Overview</h1><p>What needs attention across Simple Kitchen right now.</p></div><div className={state.open?"admin-status live":"admin-status"}><span></span>{state.open?"Ordering open":"Ordering closed"} · Week {state.week}</div></header>
+    <header className="admin-page-head"><div><div className="admin-kicker">Operations overview</div><h1>Overview</h1><p>What needs attention across Simple Kitchen right now.</p></div><div className={state.open?"admin-status live":"admin-status"}><span></span>{state.open?"Ordering open":"Ordering closed"} · Week {state.week}</div></header>
 
     <div className="admin-stat-grid">
       <div className="admin-stat"><small>Orders today</small><strong>{Number(orders.orders_today||0)}</strong><span>{Number(orders.orders_week||0)} this week</span></div>
