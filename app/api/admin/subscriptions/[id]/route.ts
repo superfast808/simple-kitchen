@@ -25,7 +25,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
 
   if(body.action==="cancel"){
     if(subscription.status!=="active") return NextResponse.json({error:"Subscription is not active."},{status:409});
-    const stripe=getStripe();
+    const stripe=await getStripe();
     await stripe.subscriptions.cancel(String(subscription.stripe_subscription_id));
     await db().query("UPDATE subscriptions SET status='cancelled',updated_at=now() WHERE id=$1",[id]);
     await auditAdmin({userId:session.userId,actorEmail:session.email,action:"subscription.cancel",entityType:"subscription",entityId:id,detail:{stripeSubscriptionId:subscription.stripe_subscription_id},ipAddress:requestIp(request)});
