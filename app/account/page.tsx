@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CustomerAuthForms } from "@/components/CustomerAuthForms";
+import { PageHero } from "@/components/PageHero";
 import { getCustomerSession } from "@/lib/customerAuth";
+import { getHeroConfig } from "@/lib/pageContent";
 import { db } from "@/lib/db";
 
 export const dynamic="force-dynamic";
@@ -8,16 +10,14 @@ export const dynamic="force-dynamic";
 function money(pence:number){return "£"+(Number(pence||0)/100).toFixed(2);}
 
 export default async function AccountPage(){
-  const session=await getCustomerSession();
+  const [session,hero]=await Promise.all([getCustomerSession(),getHeroConfig("account")]);
   if(!session){
-    return <section className="section shell narrow">
+    return <><PageHero hero={hero}/><section className="section shell narrow">
       <div className="account-card">
-        <div className="eyebrow">Customer account</div>
-        <h1>Your Simple Kitchen account</h1>
         <p>Sign in to see previous orders and subscriptions, or create an account using the same email address you have ordered with before.</p>
         <CustomerAuthForms/>
       </div>
-    </section>;
+    </section></>;
   }
 
   const [orders,subscriptions]=await Promise.all([
@@ -35,9 +35,9 @@ export default async function AccountPage(){
     ).catch(()=>({rows:[]}))
   ]);
 
-  return <section className="section shell">
+  return <><PageHero hero={hero}/><section className="section shell">
     <div className="account-dashboard-head">
-      <div><div className="eyebrow">Customer account</div><h1>Hi {session.firstName||"there"}</h1><p>{session.email}</p></div>
+      <div><div className="eyebrow">Signed in</div><h1>Hi {session.firstName||"there"}</h1><p>{session.email}</p></div>
       <form action="/api/customer/logout" method="post"><button className="btn btn-ghost">Sign out</button></form>
     </div>
 
@@ -72,5 +72,5 @@ export default async function AccountPage(){
         </div>
       </section>
     </div>
-  </section>;
+  </section></>;
 }
