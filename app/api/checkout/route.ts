@@ -51,7 +51,7 @@ export async function POST(request:NextRequest){
       shippingPence=quote.feePence;
     }
 
-    const donationPence=body.roundup&&givingIsActive()?roundUpDonationPence(subtotalPence+shippingPence):0;
+    const donationPence=body.roundup&&(await givingIsActive())?roundUpDonationPence(subtotalPence+shippingPence):0;
 
     orderId=await reserveOrder({
       cycleKey:state.windowStart.slice(0,10),
