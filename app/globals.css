@@ -39,3 +39,302 @@
 .admin-week-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.admin-week-card{position:relative;border:1px solid #e2e7de;border-radius:14px;padding:15px;background:#fafbf8}.admin-week-number{font-size:.66rem;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#6c7d62;margin-bottom:7px}.admin-week-card strong,.admin-week-card small,.admin-week-card span{display:block}.admin-week-card strong{font-size:.9rem;margin-bottom:5px}.admin-week-card small{font-size:.66rem;color:#7e8878;line-height:1.55}.admin-week-card span{font-size:.68rem;font-weight:800;margin-top:8px}.admin-week-card b{display:inline-block;margin-top:9px;border-radius:999px;background:#e7f0df;color:#45603d;padding:4px 7px;font-size:.6rem}
 @media(max-width:980px){.product-detail-grid{grid-template-columns:1fr;gap:28px}.account-section-grid{grid-template-columns:1fr}.admin-week-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.admin-media-grid{grid-template-columns:repeat(2,1fr)}.product-thumbnails{grid-template-columns:repeat(4,1fr)}.nutrition-grid{grid-template-columns:repeat(2,1fr)}.product-detail-buy{align-items:flex-start;flex-direction:column}.account-dashboard-head{flex-direction:column}.account-summary-grid{grid-template-columns:1fr}.account-order-row{grid-template-columns:1fr auto}.account-order-row>span{grid-column:1/-1;width:max-content}.admin-week-grid{grid-template-columns:1fr}}
+
+
+/* Unified Form Controls */
+:root{
+  --control-bg:#ffffff;
+  --control-bg-soft:#f8faf6;
+  --control-border:#d7ded2;
+  --control-border-hover:#b7c4ae;
+  --control-focus:#71845d;
+  --control-text:#20271e;
+  --control-muted:#889283;
+}
+
+.admin-form input:not([type="checkbox"]):not([type="radio"]),
+.admin-form select,
+.admin-form textarea,
+.admin-input,
+.account-auth-form input:not([type="checkbox"]):not([type="radio"]),
+.account-auth-form select,
+.account-auth-form textarea,
+.field-grid input:not([type="checkbox"]):not([type="radio"]),
+.field-grid select,
+.field-grid textarea,
+.subscription-box input:not([type="checkbox"]):not([type="radio"]),
+.subscription-box select,
+.subscription-box textarea,
+.coupon-entry input,
+.product-detail-controls input,
+.product-detail-controls select{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--control-border);
+  border-radius:12px;
+  background:var(--control-bg);
+  color:var(--control-text);
+  font:inherit;
+  font-size:.86rem;
+  line-height:1.35;
+  padding:11px 13px;
+  outline:none;
+  box-shadow:0 1px 0 rgba(38,50,32,.02);
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+
+.admin-form textarea,
+.account-auth-form textarea,
+.field-grid textarea,
+.subscription-box textarea{
+  min-height:112px;
+  resize:vertical;
+  line-height:1.55;
+  padding:13px 14px;
+}
+
+.admin-form select,
+.admin-input[type="select"],
+.account-auth-form select,
+.field-grid select,
+.subscription-box select,
+.product-detail-controls select{
+  appearance:none;
+  -webkit-appearance:none;
+  padding-right:42px;
+  background-image:
+    linear-gradient(45deg,transparent 50%,#65745d 50%),
+    linear-gradient(135deg,#65745d 50%,transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-size:5px 5px,5px 5px;
+  background-repeat:no-repeat;
+  cursor:pointer;
+}
+
+.admin-form input:not([type="checkbox"]):not([type="radio"]):hover,
+.admin-form select:hover,
+.admin-form textarea:hover,
+.admin-input:hover,
+.account-auth-form input:not([type="checkbox"]):not([type="radio"]):hover,
+.account-auth-form select:hover,
+.account-auth-form textarea:hover,
+.field-grid input:not([type="checkbox"]):not([type="radio"]):hover,
+.field-grid select:hover,
+.field-grid textarea:hover,
+.subscription-box input:not([type="checkbox"]):not([type="radio"]):hover,
+.subscription-box select:hover,
+.subscription-box textarea:hover{
+  border-color:var(--control-border-hover);
+}
+
+.admin-form input:not([type="checkbox"]):not([type="radio"]):focus,
+.admin-form select:focus,
+.admin-form textarea:focus,
+.admin-input:focus,
+.account-auth-form input:not([type="checkbox"]):not([type="radio"]):focus,
+.account-auth-form select:focus,
+.account-auth-form textarea:focus,
+.field-grid input:not([type="checkbox"]):not([type="radio"]):focus,
+.field-grid select:focus,
+.field-grid textarea:focus,
+.subscription-box input:not([type="checkbox"]):not([type="radio"]):focus,
+.subscription-box select:focus,
+.subscription-box textarea:focus,
+.coupon-entry input:focus,
+.product-detail-controls input:focus,
+.product-detail-controls select:focus{
+  border-color:var(--control-focus);
+  box-shadow:0 0 0 3px rgba(113,132,93,.13);
+  background:#fff;
+}
+
+.admin-form input::placeholder,
+.admin-form textarea::placeholder,
+.admin-input::placeholder,
+.account-auth-form input::placeholder,
+.account-auth-form textarea::placeholder,
+.field-grid input::placeholder,
+.field-grid textarea::placeholder,
+.subscription-box input::placeholder,
+.subscription-box textarea::placeholder{
+  color:#a1aaa0;
+  opacity:1;
+}
+
+.admin-form input:disabled,
+.admin-form select:disabled,
+.admin-form textarea:disabled,
+.admin-input:disabled,
+.account-auth-form input:disabled,
+.account-auth-form select:disabled,
+.field-grid input:disabled,
+.field-grid select:disabled,
+.subscription-box input:disabled,
+.subscription-box select:disabled{
+  background:#f0f2ee;
+  color:#8d958a;
+  border-color:#e0e4dd;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+
+.admin-form label,
+.account-auth-form label,
+.field-grid label,
+.subscription-meal-select{
+  color:#4b5547;
+}
+
+.admin-form label>span.admin-help,
+.account-auth-form label>span.admin-help,
+.field-grid label>span.admin-help{
+  color:var(--control-muted);
+  line-height:1.45;
+}
+
+/* Branded native checkboxes / radios */
+input[type="checkbox"]:not(.admin-switch input),
+input[type="radio"]{
+  appearance:none;
+  -webkit-appearance:none;
+  width:19px;
+  height:19px;
+  min-width:19px;
+  min-height:19px;
+  margin:0;
+  border:1.5px solid #b9c4b2;
+  background:#fff;
+  display:inline-grid;
+  place-content:center;
+  vertical-align:middle;
+  cursor:pointer;
+  transition:border-color .14s ease,background .14s ease,box-shadow .14s ease;
+}
+
+input[type="checkbox"]:not(.admin-switch input){
+  border-radius:6px;
+}
+
+input[type="radio"]{
+  border-radius:50%;
+}
+
+input[type="checkbox"]:not(.admin-switch input)::before{
+  content:"";
+  width:9px;
+  height:5px;
+  border-left:2px solid white;
+  border-bottom:2px solid white;
+  transform:rotate(-45deg) scale(0);
+  transform-origin:center;
+  transition:transform .12s ease;
+  margin-top:-2px;
+}
+
+input[type="checkbox"]:not(.admin-switch input):checked{
+  background:#71845d;
+  border-color:#71845d;
+}
+
+input[type="checkbox"]:not(.admin-switch input):checked::before{
+  transform:rotate(-45deg) scale(1);
+}
+
+input[type="radio"]::before{
+  content:"";
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  transform:scale(0);
+  background:white;
+  transition:transform .12s ease;
+}
+
+input[type="radio"]:checked{
+  background:#71845d;
+  border-color:#71845d;
+}
+
+input[type="radio"]:checked::before{
+  transform:scale(1);
+}
+
+input[type="checkbox"]:not(.admin-switch input):focus-visible,
+input[type="radio"]:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(113,132,93,.16);
+  border-color:#71845d;
+}
+
+input[type="checkbox"]:not(.admin-switch input):disabled,
+input[type="radio"]:disabled{
+  background:#eef0ec;
+  border-color:#d5d9d1;
+  cursor:not-allowed;
+  opacity:.72;
+}
+
+.admin-category-rule label,
+.giving-card,
+.admin-check-row{
+  cursor:pointer;
+}
+
+.admin-category-rule label input[type="checkbox"],
+.giving-card input[type="checkbox"]{
+  margin-top:1px;
+}
+
+/* Cleaner select/text area groups */
+.admin-form-grid label,
+.admin-form>label,
+.field-grid label,
+.account-auth-form label{
+  min-width:0;
+}
+
+.admin-form select[multiple]{
+  appearance:auto;
+  -webkit-appearance:auto;
+  background-image:none;
+  min-height:145px;
+  padding:7px;
+}
+
+.admin-form select[multiple] option{
+  padding:8px 10px;
+  border-radius:7px;
+  margin:2px 0;
+}
+
+.admin-form select[multiple] option:checked{
+  background:#eaf1e4 linear-gradient(0deg,#eaf1e4 0%,#eaf1e4 100%);
+  color:#31422b;
+}
+
+@media(max-width:760px){
+  .admin-form input:not([type="checkbox"]):not([type="radio"]),
+  .admin-form select,
+  .admin-form textarea,
+  .admin-input,
+  .account-auth-form input:not([type="checkbox"]):not([type="radio"]),
+  .account-auth-form select,
+  .account-auth-form textarea,
+  .field-grid input:not([type="checkbox"]):not([type="radio"]),
+  .field-grid select,
+  .field-grid textarea,
+  .subscription-box input:not([type="checkbox"]):not([type="radio"]),
+  .subscription-box select,
+  .subscription-box textarea{
+    font-size:16px;
+  }
+
+  .admin-form textarea,
+  .account-auth-form textarea,
+  .field-grid textarea,
+  .subscription-box textarea{
+    min-height:104px;
+  }
+}
