@@ -19,8 +19,8 @@ export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:str
 
   await saveProductOverride({
     productId:id,enabled:body.enabled!==false,name:String(body.name||"").trim(),
-    description:String(body.description||""),pricePence:Math.round(pricePence),category:String(body.category),
-    week,image:String(body.image||""),userId:session.userId
+    description:String(body.description||""),longDescription:String(body.longDescription||""),ingredients:String(body.ingredients||""),
+    pricePence:Math.round(pricePence),category:String(body.category),week,image:String(body.image||""),userId:session.userId
   });
   await auditAdmin({userId:session.userId,actorEmail:session.email,action:"product.update",entityType:"product",entityId:id,detail:{week,pricePence,enabled:body.enabled!==false},ipAddress:requestIp(request)});
   return NextResponse.json({ok:true});
