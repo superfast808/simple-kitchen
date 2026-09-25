@@ -19,7 +19,7 @@ export const config={
   minimumOrderPence:money(process.env.MINIMUM_ORDER_AMOUNT,0),
   deliveryEnabled:flag(process.env.DELIVERY_ENABLED,true),
   collectionEnabled:flag(process.env.COLLECTION_ENABLED,true),
-  deliveryRequireZoneMatch:flag(process.env.DELIVERY_REQUIRE_ZONE_MATCH,false),
+  deliveryRequireZoneMatch:flag(process.env.DELIVERY_REQUIRE_ZONE_MATCH,true),
   givingEnabled:process.env.CHRISTMAS_GIVING_ENABLED==="true",
   givingStart:process.env.GIVING_START||"2026-11-01",
   givingEnd:process.env.GIVING_END||"2026-12-24"
