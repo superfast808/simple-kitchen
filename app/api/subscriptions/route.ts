@@ -12,7 +12,7 @@ export async function POST(request:NextRequest){
     if(!body.email||!body.name) return NextResponse.json({error:"Name and email are required."},{status:400});
     if(!["delivery","collection"].includes(body.fulfilment)) return NextResponse.json({error:"Choose delivery or collection."},{status:400});
 
-    const stripe=getStripe();
+    const stripe=await getStripe();
     const line_items=[{
       quantity:1,
       price_data:{
