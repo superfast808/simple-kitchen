@@ -1,19 +1,14 @@
 import Link from "next/link";
 import { site } from "@/lib/site";
+import { PageHero } from "@/components/PageHero";
+import { getHeroConfig } from "@/lib/pageContent";
 
-export default function HomePage() {
+export const dynamic="force-dynamic";
+
+export default async function HomePage() {
+  const hero=await getHeroConfig("home");
   return <>
-    <section className="hero" style={{ backgroundImage: `url("${site.heroBackground}")` }}>
-      <div className="shell hero-grid">
-        <div className="hero-copy">
-          <div className="eyebrow">Freshly prepared every week</div>
-          <img className="hero-wordmark" src={site.heroWordmark} alt="Meals made simple by Simple Kitchen"/>
-          <p>Chef prepared meals delivered weekly. Proper food, full of flavour, ready when you are.</p>
-          <div className="hero-actions"><Link className="btn" href="/order">Order Now</Link><Link className="btn btn-ghost" href="/order">Browse Menu</Link></div>
-        </div>
-        <div className="hero-photo-card"><img src={site.prepPhoto} alt="Simple Kitchen freshly prepared meals"/></div>
-      </div>
-    </section>
+    <PageHero hero={hero} home/>
     <section className="section shell intro-grid">
       <div><div className="eyebrow">Welcome to</div><h1>simple kitchen</h1></div>
       <div className="large-copy"><p>At Simple Kitchen, we believe eating well shouldn’t be complicated. That’s why we prepare fresh, flavour-packed meals designed to fit around your lifestyle.</p><p>Whether you’re balancing work, family, training, or just looking to save time in the kitchen, our meals give you the freedom to enjoy quality food without the hassle.</p><Link className="text-link" href="/order">View our Menu →</Link></div>
