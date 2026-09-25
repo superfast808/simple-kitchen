@@ -22,10 +22,10 @@ export async function POST(request:NextRequest){
         background:String(source.background??heroDefaults[key].background).slice(0,1000),
         overlay,
         position:String(source.position??heroDefaults[key].position).slice(0,80),
-        primaryLabel:key==="home"?String(source.primaryLabel??heroDefaults.home.primaryLabel||"").slice(0,80):undefined,
-        primaryHref:key==="home"?String(source.primaryHref??heroDefaults.home.primaryHref||"").slice(0,300):undefined,
-        secondaryLabel:key==="home"?String(source.secondaryLabel??heroDefaults.home.secondaryLabel||"").slice(0,80):undefined,
-        secondaryHref:key==="home"?String(source.secondaryHref??heroDefaults.home.secondaryHref||"").slice(0,300):undefined
+        primaryLabel:key==="home"?String(source.primaryLabel??(heroDefaults.home.primaryLabel||"")).slice(0,80):undefined,
+        primaryHref:key==="home"?String(source.primaryHref??(heroDefaults.home.primaryHref||"")).slice(0,300):undefined,
+        secondaryLabel:key==="home"?String(source.secondaryLabel??(heroDefaults.home.secondaryLabel||"")).slice(0,80):undefined,
+        secondaryHref:key==="home"?String(source.secondaryHref??(heroDefaults.home.secondaryHref||"")).slice(0,300):undefined
       };
     }
     await setAdminSetting("page_heroes",cleaned,session.userId);
