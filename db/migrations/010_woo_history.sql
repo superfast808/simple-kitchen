@@ -26,6 +26,17 @@ ALTER TABLE order_items ADD COLUMN IF NOT EXISTS total_pence integer;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS source_meta jsonb;
 CREATE UNIQUE INDEX IF NOT EXISTS order_items_woo_line_unique_idx ON order_items (order_id,woo_line_item_id) WHERE woo_line_item_id IS NOT NULL;
 
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cadence_weeks integer NOT NULL DEFAULT 1;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS source_plan text NOT NULL DEFAULT 'weekly';
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS selection_token uuid NOT NULL DEFAULT gen_random_uuid();
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_address jsonb;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_zone text;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_fee_pence integer NOT NULL DEFAULT 0;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS customer_name text;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_selection_token_unique_idx ON subscriptions (selection_token);
+
 ALTER TABLE subscriptions ALTER COLUMN stripe_subscription_id DROP NOT NULL;
 ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'stripe';
 ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS woo_subscription_id bigint;
