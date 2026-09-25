@@ -27,17 +27,76 @@ async function get(url,optional=false){
   return response.json();
 }
 
+const PAGE_SIZE=Math.min(100,Math.max(10,Number.parseInt(process.env.WOO_HISTORY_PAGE_SIZE||"50",10)||50));
+const CHECKPOINT_PATH=path.resolve("data","woo-history-checkpoint.json");
+
+async function loadCheckpoint(){
+  if(process.argv.includes("--reset-checkpoint")){
+    await fs.rm(CHECKPOINT_PATH,{force:true}).catch(()=>undefined);
+    console.log("Woo history checkpoint reset.");
+  }
+  try{
+    return JSON.parse(await fs.readFile(CHECKPOINT_PATH,"utf8"));
+  }catch{
+    return {version:1,source:base,stages:{}};
+  }
+}
+
+async function saveCheckpoint(checkpoint){
+  await fs.mkdir(path.dirname(CHECKPOINT_PATH),{recursive:true});
+  checkpoint.updatedAt=new Date().toISOString();
+  await fs.writeFile(CHECKPOINT_PATH,JSON.stringify(checkpoint,null,2));
+}
+
 async function paged(endpoint,params={},optional=false){
   const rows=[];
   for(let page=1;;page++){
-    const batch=await get(api(endpoint,{...params,per_page:100,page}),optional);
+    const batch=await get(api(endpoint,{...params,per_page:PAGE_SIZE,page}),optional);
     if(batch==null) return null;
     if(!Array.isArray(batch)) throw new Error("Unexpected response from "+endpoint);
     rows.push(...batch);
-    console.log(endpoint+": "+rows.length);
-    if(batch.length<100) break;
+    if(batch.length<PAGE_SIZE) break;
   }
   return rows;
+}
+
+async function processStage(checkpoint,stage,endpoint,params,handler,optional=false){
+  const state=checkpoint.stages[stage]||{};
+  if(state.complete){
+    console.log("\n"+stage+": already complete ("+Number(state.processed||0)+" records).");
+    return {processed:Number(state.processed||0),available:state.available!==false};
+  }
+
+  let page=Math.max(1,Number(state.nextPage||1));
+  let processed=Math.max(0,Number(state.processed||0));
+  console.log("\n"+stage+": resuming from Woo page "+page+" (page size "+PAGE_SIZE+")");
+
+  for(;;page++){
+    const batch=await get(api(endpoint,{...params,per_page:PAGE_SIZE,page}),optional);
+    if(batch==null){
+      checkpoint.stages[stage]={...state,available:false,complete:true,nextPage:page,processed};
+      await saveCheckpoint(checkpoint);
+      return {processed,available:false};
+    }
+    if(!Array.isArray(batch)) throw new Error("Unexpected response from "+endpoint);
+
+    console.log(stage+": page "+page+" fetched "+batch.length+" records");
+    for(let index=0;index<batch.length;index++){
+      await handler(batch[index],{page,index});
+      processed++;
+      if(processed%25===0) console.log(stage+": "+processed+" processed");
+    }
+
+    const complete=batch.length<PAGE_SIZE;
+    checkpoint.stages[stage]={
+      available:true,complete,nextPage:complete?page:page+1,processed,
+      lastPage:page,lastBatchSize:batch.length
+    };
+    await saveCheckpoint(checkpoint);
+    console.log(stage+": page "+page+" committed; checkpoint saved.");
+
+    if(complete) return {processed,available:true};
+  }
 }
 
 function pence(value){
@@ -490,42 +549,50 @@ async function importSubscription(subscription){
 
 async function main(){
   await ensureSchema();
+  const checkpoint=await loadCheckpoint();
 
-  console.log("\nFetching Woo customers...");
-  const customers=(await paged("customers",{},true))||[];
-  for(const customer of customers) await importCustomer(customer);
+  const counters=checkpoint.counters||{subscriptionOrderLinks:0,subscriptionNotes:0};
+  checkpoint.counters=counters;
 
-  console.log("\nFetching Woo orders...");
-  const orders=(await paged("orders",{status:"any",orderby:"date",order:"asc"}))||[];
-  for(let index=0;index<orders.length;index++){
-    await importOrder(orders[index]);
-    if((index+1)%50===0||index===orders.length-1) console.log("orders imported: "+(index+1)+"/"+orders.length);
-  }
+  const customers=await processStage(
+    checkpoint,"customers","customers",{},
+    async(customer)=>importCustomer(customer),
+    true
+  );
 
-  console.log("\nFetching Woo subscriptions...");
-  const subscriptions=await paged("subscriptions",{orderby:"date",order:"asc"},true);
-  if(subscriptions==null) throw new Error("WooCommerce Subscriptions REST API is not available on the source site.");
+  const orders=await processStage(
+    checkpoint,"orders","orders",{status:"any",orderby:"date",order:"asc"},
+    async(order)=>importOrder(order)
+  );
 
-  let renewalLinks=0;
-  let notes=0;
-  for(let index=0;index<subscriptions.length;index++){
-    const result=await importSubscription(subscriptions[index]);
-    renewalLinks+=result.relatedOrders;
-    notes+=result.notes;
-    console.log("subscriptions imported: "+(index+1)+"/"+subscriptions.length);
-  }
+  const subscriptions=await processStage(
+    checkpoint,"subscriptions","subscriptions",{orderby:"date",order:"asc"},
+    async(subscription)=>{
+      const result=await importSubscription(subscription);
+      counters.subscriptionOrderLinks+=result.relatedOrders;
+      counters.subscriptionNotes+=result.notes;
+      checkpoint.counters=counters;
+    },
+    true
+  );
+  if(!subscriptions.available) throw new Error("WooCommerce Subscriptions REST API is not available on the source site.");
 
   const summary={
     source:base,
     importedAt:new Date().toISOString(),
-    customers:customers.length,
-    orders:orders.length,
-    subscriptions:subscriptions.length,
-    subscriptionOrderLinks:renewalLinks,
-    subscriptionNotes:notes
+    pageSize:PAGE_SIZE,
+    customers:customers.processed,
+    orders:orders.processed,
+    subscriptions:subscriptions.processed,
+    subscriptionOrderLinks:Number(counters.subscriptionOrderLinks||0),
+    subscriptionNotes:Number(counters.subscriptionNotes||0),
+    checkpoint:CHECKPOINT_PATH
   };
   await fs.mkdir(path.resolve("data"),{recursive:true});
   await fs.writeFile(path.resolve("data/woo-history-summary.json"),JSON.stringify(summary,null,2));
+  checkpoint.completedAt=summary.importedAt;
+  await saveCheckpoint(checkpoint);
+
   console.log("\nWoo history import complete");
   console.log(JSON.stringify(summary,null,2));
 }
