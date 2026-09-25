@@ -5,7 +5,7 @@ import { validateCoupon } from "@/lib/coupons";
 import { getRuntimeMenuState } from "@/lib/cycle";
 import { givingIsActive,roundUpDonationPence } from "@/lib/giving";
 import { collectionAvailable,quoteDelivery } from "@/lib/fulfilment";
-import { attachStripeSession,CapacityError,markOrderStatus,reserveOrder } from "@/lib/orders";
+import { attachStripeSession,CapacityError,CouponReservationError,markOrderStatus,reserveOrder } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
 import { getRuntimeCommerceSettings } from "@/lib/runtimeConfig";
 import { getRuntimeProductById } from "@/lib/runtimeCatalog";
@@ -160,6 +160,6 @@ export async function POST(request:NextRequest){
   }catch(error){
     if(orderId) await markOrderStatus(orderId,"failed").catch(()=>undefined);
     const message=error instanceof Error?error.message:"Unable to start checkout.";
-    return NextResponse.json({error:message},{status:error instanceof CapacityError?409:500});
+    return NextResponse.json({error:message},{status:error instanceof CapacityError||error instanceof CouponReservationError?409:500});
   }
 }
