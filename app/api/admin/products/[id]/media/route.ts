@@ -73,7 +73,7 @@ export async function DELETE(request:NextRequest,{params}:{params:Promise<{id:st
     const urlPath=await deleteProductMedia(id,mediaId);
     if(!urlPath) return NextResponse.json({error:"Image not found."},{status:404});
     if(urlPath.startsWith("/media/products/")){
-      const target=path.join(process.cwd(),"public",urlPath.replace(/^\//,""));
+      const target=path.join(process.cwd(),"data","media",urlPath.replace(/^\/media\//,""));
       await unlink(target).catch(()=>undefined);
     }
     await auditAdmin({userId:session.userId,actorEmail:session.email,action:"product.media_delete",entityType:"product",entityId:id,detail:{mediaId},ipAddress:requestIp(request)});
