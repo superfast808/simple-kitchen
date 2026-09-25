@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { db } from "./db";
+import { ensureCouponSchema } from "./coupons";
 import { sendMail } from "./mail";
 
 function giftCode(){
@@ -27,6 +28,7 @@ async function createGiftCoupon(amountPence:number){
 }
 
 export async function issueGiftCardsBySession(sessionId:string){
+  await ensureCouponSchema();
   const orderResult=await db().query(
     "SELECT id,customer,status FROM orders WHERE stripe_session_id=$1 LIMIT 1",
     [sessionId]
