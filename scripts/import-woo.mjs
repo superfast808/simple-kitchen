@@ -85,7 +85,7 @@ async function ensureMediaSchema(){
 async function importProductMedia(product){
   const images=Array.isArray(product.images)?product.images.slice(0,12):[];
   if(!images.length) return 0;
-  const dir=path.resolve("public","media","products",String(product.id));
+  const dir=path.resolve("data","media","products",String(product.id));
   await fs.mkdir(dir,{recursive:true});
 
   let count=0;
@@ -111,7 +111,7 @@ async function importProductMedia(product){
       continue;
     }
     const ext=extensionFrom(type,source);
-    const filename=`woo-${image?.id||index+1}-${crypto.createHash("sha1").update(source).digest("hex").slice(0,8)}${ext}`;
+    const filename=`woo-${image?.id||index+1}-${crypto.createHash("sha1").update(buffer).digest("hex").slice(0,8)}${ext}`;
     await fs.writeFile(path.join(dir,filename),buffer);
     const urlPath=`/media/products/${product.id}/${filename}`;
 
@@ -222,7 +222,7 @@ async function main(){
   console.log(JSON.stringify(inspection.counts,null,2));
   console.log("Raw catalogue: data/woo-products.json");
   console.log("Inspection:    data/woo-inspection.json");
-  console.log("Local media:   public/media/products/");
+  console.log("Local media:   data/media/products/");
 }
 
 await main();
