@@ -148,3 +148,7 @@ CREATE TABLE IF NOT EXISTS product_overrides (
   updated_by uuid REFERENCES admin_users(id) ON DELETE SET NULL,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_address jsonb;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_zone text;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_fee_pence integer NOT NULL DEFAULT 0;
