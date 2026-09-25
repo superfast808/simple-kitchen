@@ -3,10 +3,11 @@ import { useState } from "react";
 
 type Media={id:string;urlPath:string;altText:string;sortOrder:number;isPrimary:boolean;source:string};
 
-export function AdminProductMedia({productId,initial,isWoo}:{productId:string;initial:Media[];isWoo:boolean}){
+export function AdminProductMedia({productId,initial,isWoo,onChange}:{productId:string;initial:Media[];isWoo:boolean;onChange?:(media:Media[])=>void}){
   const [media,setMedia]=useState(initial);
   const [busy,setBusy]=useState("");
   const [message,setMessage]=useState("");
+  function applyMedia(next:Media[]){setMedia(next);onChange?.(next);}
 
   async function upload(files:FileList|null){
     if(!files?.length) return;
@@ -17,7 +18,7 @@ export function AdminProductMedia({productId,initial,isWoo}:{productId:string;in
       const response=await fetch("/api/admin/products/"+encodeURIComponent(productId)+"/media",{method:"POST",body:form});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Upload failed");
-      setMedia(data.media);setMessage(files.length+" image"+(files.length===1?"":"s")+" uploaded.");
+      applyMedia(data.media);setMessage(files.length+" image"+(files.length===1?"":"s")+" uploaded.");
     }catch(error){setMessage(error instanceof Error?error.message:"Upload failed");}
     finally{setBusy("");}
   }
@@ -31,7 +32,7 @@ export function AdminProductMedia({productId,initial,isWoo}:{productId:string;in
       });
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Unable to update gallery");
-      setMedia(data.media);setMessage("Gallery updated.");
+      applyMedia(data.media);setMessage("Gallery updated.");
     }catch(error){setMessage(error instanceof Error?error.message:"Unable to update gallery");}
     finally{setBusy("");}
   }
@@ -55,7 +56,7 @@ export function AdminProductMedia({productId,initial,isWoo}:{productId:string;in
       const response=await fetch("/api/admin/products/"+encodeURIComponent(productId)+"/media?mediaId="+encodeURIComponent(id),{method:"DELETE"});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Unable to delete image");
-      setMedia(data.media);setMessage("Image removed.");
+      applyMedia(data.media);setMessage("Image removed.");
     }catch(error){setMessage(error instanceof Error?error.message:"Unable to delete image");}
     finally{setBusy("");}
   }
@@ -66,7 +67,7 @@ export function AdminProductMedia({productId,initial,isWoo}:{productId:string;in
       const response=await fetch("/api/admin/products/"+encodeURIComponent(productId)+"/import-woo-media",{method:"POST"});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Woo import failed");
-      setMedia(data.media);setMessage(data.imported+" Woo image"+(data.imported===1?"":"s")+" imported locally.");
+      applyMedia(data.media);setMessage(data.imported+" Woo image"+(data.imported===1?"":"s")+" imported locally.");
     }catch(error){setMessage(error instanceof Error?error.message:"Woo import failed");}
     finally{setBusy("");}
   }
