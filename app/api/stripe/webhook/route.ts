@@ -2,6 +2,8 @@ import { NextRequest,NextResponse } from "next/server";
 import Stripe from "stripe";
 import { config } from "@/lib/config";
 import { sendMail } from "@/lib/mail";
+import { recordCouponRedemptionBySession } from "@/lib/coupons";
+import { issueGiftCardsBySession } from "@/lib/giftCards";
 import { markOrderStatusBySession } from "@/lib/orders";
 import { getStripe,getStripeWebhookSecret } from "@/lib/stripe";
 import { deactivateStripeSubscription, upsertStripeSubscription } from "@/lib/subscriptions";
@@ -21,7 +23,11 @@ export async function POST(request:NextRequest){
       const session=event.data.object as Stripe.Checkout.Session;
       if(session.mode==="payment"){
         await markOrderStatusBySession(session.id,"paid");
-        await recordPaidOrderAudienceBySession(session.id);
+        await Promise.all([
+          recordPaidOrderAudienceBySession(session.id),
+          recordCouponRedemptionBySession(session.id),
+          issueGiftCardsBySession(session.id)
+        ]);
       }
 
       if(session.mode==="subscription"&&session.metadata?.type==="subscription"&&session.subscription){
