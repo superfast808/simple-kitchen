@@ -69,7 +69,7 @@ export async function matchShippingZone(postcode:string){
     if(zone.patterns.length===0) continue;
     if(zone.patterns.some((pattern)=>postcodeMatchesPattern(compact,pattern))) return zone;
   }
-  return zones.find((zone)=>zone.patterns.length===0)||null;
+  return null;
 }
 
 export async function quoteDelivery(postcode:string,subtotalPence=0){
