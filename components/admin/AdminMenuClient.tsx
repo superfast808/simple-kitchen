@@ -1,9 +1,11 @@
 "use client";
 import { useMemo,useState } from "react";
+import { AdminProductMedia } from "./AdminProductMedia";
 
+type Media={id:string;urlPath:string;altText:string;sortOrder:number;isPrimary:boolean;source:string};
 type Item={
-  id:string;name:string;description:string;price:number;category:string;week:number|null;image?:string;
-  enabled:boolean;hasOverride:boolean;isCustom:boolean;
+  id:string;name:string;description:string;longDescription:string;ingredients:string;price:number;category:string;week:number|null;image?:string;
+  media:Media[];enabled:boolean;hasOverride:boolean;isCustom:boolean;
 };
 
 export function AdminMenuClient({initial}:{initial:Item[]}){
@@ -28,7 +30,7 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
       const response=await fetch("/api/admin/products",{method:"POST"});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Unable to create product");
-      setItems((current)=>[data.product,...current]);
+      setItems((current)=>[{...data.product,longDescription:"",ingredients:"",media:[]},...current]);
       setWeek("all");setQuery("");
       setMessage("New product created — fill in the details and save.");
     }catch(error){setMessage(error instanceof Error?error.message:"Unable to create product");}
@@ -41,7 +43,7 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
       const response=await fetch("/api/admin/products/"+encodeURIComponent(item.id),{
         method:"PATCH",headers:{"content-type":"application/json"},
         body:JSON.stringify({
-          enabled:item.enabled,name:item.name,description:item.description,
+          enabled:item.enabled,name:item.name,description:item.description,longDescription:item.longDescription,ingredients:item.ingredients,
           pricePence:Math.round(Number(item.price)*100),category:item.category,week:item.week,image:item.image||""
         })
       });
@@ -54,7 +56,7 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
   }
 
   async function removeOrReset(item:Item){
-    const wording=item.isCustom?"Delete this custom product?":"Reset this product to the imported/default values?";
+    const wording=item.isCustom?"Delete this custom product?":"Reset this product text/pricing override? Local gallery images are retained.";
     if(!confirm(wording)) return;
     setSaving(item.id);setMessage("");
     try{
@@ -82,19 +84,22 @@ export function AdminMenuClient({initial}:{initial:Item[]}){
     <div className="admin-product-admin-grid">
       {visible.map((item)=><article className="admin-product-editor" key={item.id}>
         <div className="admin-product-editor-head">
-          <img src={item.image||""} alt=""/>
+          <img src={item.media[0]?.urlPath||item.image||""} alt=""/>
           <div><strong>{item.name}</strong><small>{item.isCustom?"Admin product":"Woo/source ID "+item.id}</small></div>
           <button type="button" className={item.enabled?"admin-switch on":"admin-switch"} onClick={()=>patchLocal(item.id,{enabled:!item.enabled})} title={item.enabled?"Disable":"Enable"}></button>
         </div>
         <div className="admin-form">
           <label>Name<input value={item.name} onChange={(e)=>patchLocal(item.id,{name:e.target.value})}/></label>
-          <label>Description<textarea rows={3} value={item.description} onChange={(e)=>patchLocal(item.id,{description:e.target.value})}/></label>
+          <label>Card description<textarea rows={2} value={item.description} onChange={(e)=>patchLocal(item.id,{description:e.target.value})}/><span className="admin-help">Short description shown in the menu grid.</span></label>
+          <label>Full product description<textarea rows={6} value={item.longDescription} onChange={(e)=>patchLocal(item.id,{longDescription:e.target.value})}/><span className="admin-help">Shown on the customer product-detail page. Woo description is imported here when blank.</span></label>
+          <label>Ingredients / preparation notes<textarea rows={4} value={item.ingredients} onChange={(e)=>patchLocal(item.id,{ingredients:e.target.value})}/></label>
           <div className="admin-form-grid">
             <label>Price (£)<input type="number" step=".01" min="0" value={item.price} onChange={(e)=>patchLocal(item.id,{price:Number(e.target.value)})}/></label>
             <label>Menu week<select value={item.week??""} onChange={(e)=>patchLocal(item.id,{week:e.target.value?Number(e.target.value):null})}><option value="">Always</option>{[1,2,3,4,5,6].map((value)=><option value={value} key={value}>Week {value}</option>)}</select></label>
             <label>Category<select value={item.category} onChange={(e)=>patchLocal(item.id,{category:e.target.value})}>{["main","breakfast","soup","treat","special","gift"].map((value)=><option key={value} value={value}>{value}</option>)}</select></label>
-            <label>Image URL<input value={item.image||""} onChange={(e)=>patchLocal(item.id,{image:e.target.value})}/></label>
+            <label>Legacy/fallback image URL<input value={item.image||""} onChange={(e)=>patchLocal(item.id,{image:e.target.value})}/><span className="admin-help">Only used until a local gallery image exists.</span></label>
           </div>
+          <AdminProductMedia productId={item.id} initial={item.media} isWoo={!item.isCustom&&/^\d+$/.test(item.id)}/>
           <div className="admin-toolbar">
             <button className="admin-primary" disabled={saving===item.id} onClick={()=>save(item)}>{saving===item.id?"Saving…":"Save product"}</button>
             {(item.hasOverride||item.isCustom)&&<button className={item.isCustom?"admin-danger":"admin-secondary"} disabled={saving===item.id} onClick={()=>removeOrReset(item)}>{item.isCustom?"Delete product":"Reset override"}</button>}
