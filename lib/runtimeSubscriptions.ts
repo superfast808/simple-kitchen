@@ -6,6 +6,8 @@ export type RuntimeSubscriptionPlan=SubscriptionPlan&{enabled:boolean;public:boo
 type Override={
   enabled?:boolean;
   public?:boolean;
+  name?:string;
+  description?:string;
   prices?:Record<string,number>;
 };
 
@@ -19,6 +21,8 @@ export async function getRuntimeSubscriptionPlans():Promise<Record<SubscriptionC
       ...base,
       enabled:override.enabled!==false,
       public:override.public===true||(id!=="twice-weekly"&&override.public!==false),
+      name:override.name||base.name,
+      description:override.description||base.description,
       options:base.options.map((option)=>{
         const price=override.prices?.[String(option.meals)];
         return Number.isFinite(Number(price))?{...option,pricePence:Math.max(0,Math.round(Number(price)))}:option;
