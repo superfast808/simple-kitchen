@@ -8,6 +8,7 @@ const links=[
   ["/admin/orders","Orders","▤"],
   ["/admin/subscriptions","Subscriptions","↻"],
   ["/admin/menu","Menu & products","◫"],
+  ["/admin/weeks","Weeks & schedule","◷"],
   ["/admin/coupons","Coupons & gift cards","%"],
   ["/admin/fulfilment","Delivery & collection","⌖"],
   ["/admin/messaging","Messaging","✉"],
