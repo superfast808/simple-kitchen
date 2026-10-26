@@ -8,6 +8,6 @@ export function Footer() {
       <div><h3>Explore</h3><Link href="/order">Order Here</Link><Link href="/subscriptions">Subscriptions</Link><Link href="/story">Our Story</Link><Link href="/find-us">Where to find us</Link></div>
       <div><h3>Contact</h3><a href={`mailto:${site.email}`}>{site.email}</a><a href={site.instagram} target="_blank" rel="noreferrer">@simplekitchenprep</a></div>
     </div>
-    <div className="footer-bottom shell"><span>© {new Date().getFullYear()} Simple Kitchen Prep</span><span><Link href="/privacy">Privacy Policy</Link> · E-Commerce Solution by IT Expert Ayrshire</span></div>
+    <div className="footer-bottom shell"><span>© {new Date().getFullYear()} Simple Kitchen Prep</span><span><Link href="/privacy">Privacy Policy</Link> · <a href="https://itexpertayrshire.co.uk" target="_blank" rel="noopener noreferrer">Website by IT Expert Ayrshire</a></span></div>
   </footer>;
 }
