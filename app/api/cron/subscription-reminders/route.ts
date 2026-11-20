@@ -7,6 +7,10 @@ export async function POST(request: NextRequest) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error:"Unauthorized" }, { status:401 });
   }
+  if (config.mealSelection !== "site") {
+    // The kitchen system sends subscribers their weekly meal-choice emails.
+    return NextResponse.json({ skipped: true, reason: "Meal choices are handled by the kitchen system." });
+  }
   const rows = await activeSubscriptionLinks();
   let sent = 0;
   for (const row of rows) {

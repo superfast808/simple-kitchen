@@ -86,6 +86,33 @@ export async function getRuntimeProducts(){
   }
 }
 
+/**
+ * Every product, including hidden ones, for the kitchen-system product feed.
+ * The kitchen system clears the menu week of products missing from the feed,
+ * so disabled products are listed with enabled=false rather than left out.
+ */
+export async function getRuntimeProductsForFeed():Promise<{product:Product;enabled:boolean}[]>{
+  await ensureSchema();
+  const [result,media]=await Promise.all([
+    db().query("SELECT product_id,enabled,name,description,long_description,ingredients,price_pence,category,week,image FROM product_overrides"),
+    getAllProductMedia()
+  ]);
+  const overrides=result.rows as Override[];
+  const map=new Map(overrides.map((row)=>[String(row.product_id),row]));
+  const staticIds=new Set(products.map((product)=>product.id));
+  const images=(id:string)=>(media.get(id)||[]).map((item)=>item.urlPath);
+  const base=products.map((product)=>{
+    const override=map.get(product.id);
+    const applied=apply(product,override?{...override,enabled:null}:undefined,images(product.id));
+    return applied?{product:applied,enabled:override?.enabled!==false}:null;
+  });
+  const custom=overrides.filter((row)=>!staticIds.has(row.product_id)).map((row)=>{
+    const applied=customProduct({...row,enabled:null},images(row.product_id));
+    return applied?{product:applied,enabled:row.enabled!==false}:null;
+  });
+  return [...base,...custom].filter(Boolean) as {product:Product;enabled:boolean}[];
+}
+
 export async function getRuntimeProductsForWeek(week:number,menuOpen:boolean){
   const all=await getRuntimeProducts();
   return all.filter((product)=>product.weeks==="always"||(menuOpen&&product.weeks.includes(week)));

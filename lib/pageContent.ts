@@ -21,7 +21,7 @@ export const heroDefaults:Record<HeroKey,HeroConfig>={
     title:"Meals made simple",
     copy:"Chef prepared meals delivered weekly. Proper food, full of flavour, ready when you are.",
     background:site.heroBackground,overlay:0.18,position:"center center",
-    primaryLabel:"Order Now",primaryHref:"/order",secondaryLabel:"Browse Menu",secondaryHref:"/order"
+    primaryLabel:"Order Now",primaryHref:"/order-here",secondaryLabel:"Browse Menu",secondaryHref:"/order-here"
   },
   order:{
     eyebrow:"Our menu",title:"Order Here",

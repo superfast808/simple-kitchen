@@ -1,6 +1,6 @@
 import { NextRequest,NextResponse } from "next/server";
 import { auditAdmin,requestIp,requireAdminApi,sameOriginMutation } from "@/lib/adminAuth";
-import { listCoupons,upsertCoupon } from "@/lib/coupons";
+import { listCoupons,setCouponRules,upsertCoupon } from "@/lib/coupons";
 
 async function wooCoupons(){
   const base=(process.env.WOO_SOURCE_URL||"https://simplekitchenprep.com").replace(/\/$/,"");
@@ -22,6 +22,23 @@ async function wooCoupons(){
   return rows;
 }
 
+function metaValue(coupon:any,key:string){
+  const entry=(Array.isArray(coupon.meta_data)?coupon.meta_data:[]).find((item:any)=>item?.key===key);
+  return entry?String(entry.value??""):"";
+}
+
+/**
+ * The SK Rewards plugin stored the January 2027 loyalty reward as "£20 off"
+ * and then, in plugin code, limited it to 25% of the food total and to
+ * 1–31 January. Those rules are carried over onto the imported coupon.
+ */
+function rewardRules(coupon:any){
+  if(metaValue(coupon,"_skrp_kind")==="jan"){
+    return {startsAt:"2027-01-01T00:00:00+00:00",percentCap:25};
+  }
+  return {startsAt:null,percentCap:null};
+}
+
 function pence(value:unknown){
   const parsed=Number(value);
   return Number.isFinite(parsed)?Math.max(0,Math.round(parsed*100)):0;
@@ -40,7 +57,7 @@ export async function POST(request:NextRequest){
     let imported=0;
     for(const coupon of rows){
       const type=["percent","fixed_cart","fixed_product"].includes(coupon.discount_type)?coupon.discount_type:"fixed_cart";
-      await upsertCoupon({
+      const saved=await upsertCoupon({
         wooId:Number(coupon.id),
         code:String(coupon.code||"").toUpperCase(),
         description:String(coupon.description||""),
@@ -65,6 +82,7 @@ export async function POST(request:NextRequest){
         legacyUsedBy:(coupon.used_by||[]).map(String),
         source:"woo"
       });
+      await setCouponRules(String(saved.id),rewardRules(coupon));
       imported++;
     }
     await auditAdmin({userId:session.userId,actorEmail:session.email,action:"coupon.woo_sync",entityType:"coupon",detail:{imported},ipAddress:requestIp(request)});

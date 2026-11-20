@@ -4,7 +4,9 @@ import { config } from "@/lib/config";
 import { sendMail } from "@/lib/mail";
 import { recordCouponRedemptionBySession } from "@/lib/coupons";
 import { issueGiftCardsBySession } from "@/lib/giftCards";
-import { markOrderStatusBySession } from "@/lib/orders";
+import { notifyKitchen } from "@/lib/kitchenBridge";
+import { markOrderPaidBySession,markOrderStatusBySession } from "@/lib/orders";
+import { recordSubscriptionInvoice } from "@/lib/subscriptionOrders";
 import { getStripe,getStripeWebhookSecret } from "@/lib/stripe";
 import { deactivateStripeSubscription, upsertStripeSubscription } from "@/lib/subscriptions";
 import { recordPaidOrderAudienceBySession, setAudienceSubscriptionByEmail } from "@/lib/smsReminders";
@@ -22,12 +24,15 @@ export async function POST(request:NextRequest){
     if(event.type==="checkout.session.completed"){
       const session=event.data.object as Stripe.Checkout.Session;
       if(session.mode==="payment"){
-        await markOrderStatusBySession(session.id,"paid");
+        const paymentIntent=typeof session.payment_intent==="string"?session.payment_intent:session.payment_intent?.id;
+        const paidOrderId=await markOrderPaidBySession(session.id,paymentIntent);
         await Promise.all([
           recordPaidOrderAudienceBySession(session.id),
           recordCouponRedemptionBySession(session.id),
           issueGiftCardsBySession(session.id)
         ]);
+        // Hand the paid order to the kitchen system straight away (it also polls).
+        if(paidOrderId) await notifyKitchen(paidOrderId,"order.created");
       }
 
       if(session.mode==="subscription"&&session.metadata?.type==="subscription"&&session.subscription){
@@ -51,13 +56,25 @@ export async function POST(request:NextRequest){
           deliveryFeePence:Number(session.metadata.deliveryFeePence)||0
         });
         await setAudienceSubscriptionByEmail(email,true);
-        const url=config.siteUrl+"/subscription-select?token="+token;
-        await sendMail(
-          session.customer_details?.email||"",
-          "Choose your Simple Kitchen meals",
-          '<h2>Your Simple Kitchen subscription is active</h2><p>Use the link below when your menu is due to choose your meals.</p><p><a href="'+url+'">Choose your meals</a></p>'
-        );
+        // In "kitchen" mode the kitchen system sends the meal-choice email once
+        // the subscription order reaches it, so nothing is sent from here.
+        if(config.mealSelection==="site"){
+          const url=config.siteUrl+"/subscription-select?token="+token;
+          await sendMail(
+            session.customer_details?.email||"",
+            "Choose your Simple Kitchen meals",
+            '<h2>Your Simple Kitchen subscription is active</h2><p>Use the link below when your menu is due to choose your meals.</p><p><a href="'+url+'">Choose your meals</a></p>'
+          );
+        }
       }
+    }
+
+    // Every paid subscription period (first payment and renewals) becomes an
+    // order the kitchen system recognises, as WooCommerce Subscriptions did.
+    if(event.type==="invoice.paid"){
+      const invoice=event.data.object as Stripe.Invoice;
+      const orderId=await recordSubscriptionInvoice(invoice);
+      if(orderId) await notifyKitchen(orderId,"order.created");
     }
 
     if(event.type==="checkout.session.expired"){

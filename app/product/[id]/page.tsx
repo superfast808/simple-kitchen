@@ -22,7 +22,7 @@ export default async function ProductPage({params}:{params:Promise<{id:string}>}
   const available=product.weeks==="always"||(state.open&&product.weeks.includes(state.week));
 
   return <>
-    <section className="product-breadcrumb shell"><Link href="/order">← Back to this week’s menu</Link></section>
+    <section className="product-breadcrumb shell"><Link href="/order-here">← Back to this week’s menu</Link></section>
     <section className="section shell"><ProductDetailClient product={product} available={available}/></section>
   </>;
 }

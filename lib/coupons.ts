@@ -26,6 +26,8 @@ export type CouponRow={
   legacy_usage_count:number;
   legacy_used_by:string[];
   source:string;
+  starts_at:string|null;
+  percent_cap:string|number|null;
 };
 
 let schemaReady:Promise<void>|null=null;
@@ -66,6 +68,10 @@ export async function ensureCouponSchema(){
         );
         ALTER TABLE coupons ADD COLUMN IF NOT EXISTS legacy_usage_count integer NOT NULL DEFAULT 0;
         ALTER TABLE coupons ADD COLUMN IF NOT EXISTS legacy_used_by text[] NOT NULL DEFAULT '{}';
+        -- Earliest date the code works, and an optional cap on the discount as a
+        -- percentage of eligible items (e.g. the January reward: £20 max, 25% cap).
+        ALTER TABLE coupons ADD COLUMN IF NOT EXISTS starts_at timestamptz;
+        ALTER TABLE coupons ADD COLUMN IF NOT EXISTS percent_cap numeric(5,2);
         CREATE UNIQUE INDEX IF NOT EXISTS coupons_code_unique_idx ON coupons (lower(code));
         CREATE TABLE IF NOT EXISTS coupon_redemptions (
           id bigserial PRIMARY KEY,
@@ -156,6 +162,10 @@ export async function validateCoupon(input:{
   const coupon=result.rows[0] as CouponRow|undefined;
   if(!coupon||!coupon.enabled) throw new Error("This coupon code is not valid.");
   if(coupon.expiry_at&&new Date(coupon.expiry_at).getTime()<Date.now()) throw new Error("This coupon has expired.");
+  if(coupon.starts_at&&new Date(coupon.starts_at).getTime()>Date.now()){
+    const from=new Date(coupon.starts_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric",timeZone:"Europe/London"});
+    throw new Error("This coupon can be used from "+from+".");
+  }
 
   if(input.subtotalPence<Number(coupon.minimum_amount_pence||0)){
     throw new Error("This coupon requires a minimum spend of £"+(Number(coupon.minimum_amount_pence)/100).toFixed(2)+".");
@@ -214,6 +224,10 @@ export async function validateCoupon(input:{
     discountPence=Math.min(eligibleSubtotal,Math.round(amount*100));
   }
 
+  const percentCap=Number(coupon.percent_cap);
+  if(coupon.percent_cap!=null&&Number.isFinite(percentCap)&&percentCap>0){
+    discountPence=Math.min(discountPence,Math.round(eligibleSubtotal*Math.min(100,percentCap)/100));
+  }
   discountPence=Math.max(0,Math.min(input.subtotalPence,discountPence));
   if(discountPence<=0&&!coupon.free_shipping) throw new Error("This coupon does not reduce the current order.");
 
@@ -327,6 +341,12 @@ export async function upsertCoupon(input:{
     values
   );
   return result.rows[0];
+}
+
+/** Rules WooCommerce kept in plugin code rather than on the coupon itself. */
+export async function setCouponRules(id:string,rules:{startsAt:string|null;percentCap:number|null}){
+  await ensureCouponSchema();
+  await db().query("UPDATE coupons SET starts_at=$2,percent_cap=$3,updated_at=now() WHERE id=$1",[id,rules.startsAt,rules.percentCap]);
 }
 
 export async function deleteCoupon(id:string){

@@ -2,10 +2,14 @@ import { SubscriptionSelector } from "@/components/SubscriptionSelector";
 import { getRuntimeProductsForWeek } from "@/lib/runtimeCatalog";
 import { getRuntimeMenuState } from "@/lib/cycle";
 import { getSubscriptionByToken } from "@/lib/subscriptions";
+import { config } from "@/lib/config";
 
 export const dynamic="force-dynamic";
 
 export default async function SubscriptionSelectPage({searchParams}:{searchParams:Promise<{token?:string}>}){
+  if(config.mealSelection!=="site"){
+    return <section className="section shell narrow"><div className="success-card"><h1>Choosing your meals</h1><p>Each week we email you a personal link to choose your meals once the menu opens. You can also see your upcoming deliveries in My Simple Kitchen.</p><p><a className="btn" href={config.kitchenPortalUrl}>Open My Simple Kitchen</a></p></div></section>;
+  }
   const {token=""}=await searchParams;
   const subscription=token?await getSubscriptionByToken(token).catch(()=>null):null;
   const state=await getRuntimeMenuState();

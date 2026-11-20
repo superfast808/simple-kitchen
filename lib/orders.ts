@@ -1,5 +1,6 @@
 import { getRuntimeCommerceSettings } from "./runtimeConfig";
 import { db, transaction } from "./db";
+import { ensureBridgeSchema } from "./kitchenBridge";
 import type { Fulfilment, Product } from "./types";
 
 export class CapacityError extends Error {}
@@ -14,7 +15,7 @@ async function ensureOrderSchema(){
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_pence integer NOT NULL DEFAULT 0;
       ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_fulfilment_check;
       ALTER TABLE orders ADD CONSTRAINT orders_fulfilment_check CHECK (fulfilment IN ('collection','delivery','electronic'));
-    `).then(()=>undefined);
+    `).then(()=>ensureBridgeSchema());
   }
   await orderSchemaReady;
 }
@@ -146,6 +147,23 @@ export async function attachStripeSession(orderId: string, sessionId: string) {
 export async function markOrderStatus(orderId: string, status: string) {
   await db().query("UPDATE orders SET status=$2, updated_at=now() WHERE id=$1", [orderId, status]);
 }
+/**
+ * Marks a Stripe Checkout order as paid and records the payment intent, which
+ * the kitchen system's refund flow needs. Returns the order id only the first
+ * time it becomes paid, so webhook retries don't re-announce the order.
+ */
+export async function markOrderPaidBySession(sessionId: string, paymentIntentId?: string | null) {
+  await ensureOrderSchema();
+  const result = await db().query(
+    `UPDATE orders SET status='paid', date_paid=COALESCE(date_paid,now()),
+       stripe_payment_intent_id=COALESCE($2,stripe_payment_intent_id), updated_at=now()
+     WHERE stripe_session_id=$1 AND status IN ('pending','expired','failed')
+     RETURNING id`,
+    [sessionId, paymentIntentId || null]
+  );
+  return result.rows[0]?.id ? String(result.rows[0].id) : null;
+}
+
 export async function markOrderStatusBySession(sessionId: string, status: string) {
   await db().query("UPDATE orders SET status=$2, updated_at=now() WHERE stripe_session_id=$1", [sessionId, status]);
 }

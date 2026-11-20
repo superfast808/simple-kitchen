@@ -16,7 +16,7 @@ export function Header() {
         <Link href="/" onClick={() => setOpen(false)}>Home</Link>
         <Link href="/story" onClick={() => setOpen(false)}>Our Story</Link>
         <Link href="/find-us" onClick={() => setOpen(false)}>Where to find us</Link>
-        <Link href="/order" onClick={() => setOpen(false)}>Order Here</Link>
+        <Link href="/order-here" onClick={() => setOpen(false)}>Order Here</Link>
         <Link href="/subscriptions" onClick={() => setOpen(false)}>Subscriptions</Link>
         <Link href="/account" onClick={() => setOpen(false)}>Account</Link>
         <Link href="/basket" className="basket-link" onClick={() => setOpen(false)}>Basket <span>{count}</span></Link>

@@ -22,5 +22,9 @@ export const config={
   deliveryRequireZoneMatch:flag(process.env.DELIVERY_REQUIRE_ZONE_MATCH,true),
   givingEnabled:process.env.CHRISTMAS_GIVING_ENABLED==="true",
   givingStart:process.env.GIVING_START||"2026-11-01",
-  givingEnd:process.env.GIVING_END||"2026-12-24"
+  givingEnd:process.env.GIVING_END||"2026-12-24",
+  // "kitchen" (default): simplekitchen-admin emails subscribers and runs meal
+  // choices, as it did with WooCommerce. "site": use this site's own selector.
+  mealSelection:(process.env.SUBSCRIPTION_MEAL_SELECTION==="site"?"site":"kitchen") as "site"|"kitchen",
+  kitchenPortalUrl:(process.env.KITCHEN_PORTAL_URL||"https://admin.simplekitchenprep.com/my").replace(/\/$/,"")
 };

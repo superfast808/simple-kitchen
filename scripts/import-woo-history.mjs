@@ -260,6 +260,10 @@ async function ensureSchema(){
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address jsonb;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS source_meta jsonb;
     CREATE UNIQUE INDEX IF NOT EXISTS orders_woo_order_unique_idx ON orders (woo_order_id) WHERE woo_order_id IS NOT NULL;
+    -- Order numbers seen by the kitchen system: Woo orders keep their Woo ID.
+    CREATE SEQUENCE IF NOT EXISTS order_number_seq;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_number bigint;
+    CREATE UNIQUE INDEX IF NOT EXISTS orders_order_number_unique_idx ON orders (order_number) WHERE order_number IS NOT NULL;
 
     ALTER TABLE order_items ADD COLUMN IF NOT EXISTS woo_line_item_id bigint;
     ALTER TABLE order_items ADD COLUMN IF NOT EXISTS woo_variation_id bigint;
@@ -384,6 +388,7 @@ async function importOrder(order){
   const status=orderStatus(order.status);
   const sourceMeta={
     created_via:order.created_via,version:order.version,customer_note:order.customer_note,
+    transaction_id:order.transaction_id||"",
     coupon_lines:order.coupon_lines||[],fee_lines:order.fee_lines||[],shipping_lines:order.shipping_lines||[],
     refunds:order.refunds||[],meta_data:order.meta_data||[]
   };
@@ -393,10 +398,10 @@ async function importOrder(order){
       (created_at,updated_at,cycle_key,fulfilment_date,status,fulfilment,subtotal_pence,shipping_pence,
        donation_pence,matched_donation_pence,discount_pence,coupon_code,total_pence,customer,
        source,woo_order_id,woo_parent_order_id,woo_customer_id,woo_order_number,woo_order_key,currency,
-       payment_method,payment_method_title,date_paid,date_completed,billing_address,shipping_address,source_meta)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13::jsonb,'woo',$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24::jsonb,$25::jsonb,$26::jsonb)
+       payment_method,payment_method_title,date_paid,date_completed,billing_address,shipping_address,source_meta,order_number)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13::jsonb,'woo',$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24::jsonb,$25::jsonb,$26::jsonb,$14)
      ON CONFLICT (woo_order_id) WHERE woo_order_id IS NOT NULL DO UPDATE SET
-       updated_at=EXCLUDED.updated_at,status=EXCLUDED.status,fulfilment_date=EXCLUDED.fulfilment_date,
+       updated_at=EXCLUDED.updated_at,order_number=EXCLUDED.order_number,status=EXCLUDED.status,fulfilment_date=EXCLUDED.fulfilment_date,
        fulfilment=EXCLUDED.fulfilment,subtotal_pence=EXCLUDED.subtotal_pence,shipping_pence=EXCLUDED.shipping_pence,
        donation_pence=EXCLUDED.donation_pence,matched_donation_pence=EXCLUDED.matched_donation_pence,
        discount_pence=EXCLUDED.discount_pence,coupon_code=EXCLUDED.coupon_code,total_pence=EXCLUDED.total_pence,
@@ -591,6 +596,12 @@ async function main(){
     true
   );
   if(!subscriptions.available) throw new Error("WooCommerce Subscriptions REST API is not available on the source site.");
+
+  // New storefront orders must be numbered above every imported Woo order.
+  const start=Math.max(1,Number.parseInt(process.env.ORDER_NUMBER_START||"100000",10)||100000);
+  await pool.query(`SELECT setval('order_number_seq',GREATEST(
+    (SELECT CASE WHEN is_called THEN last_value ELSE last_value-1 END FROM order_number_seq),
+    COALESCE((SELECT max(order_number) FROM orders),0),$1::bigint-1,1),true)`,[start]);
 
   const summary={
     source:base,

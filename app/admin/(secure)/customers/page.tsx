@@ -24,7 +24,7 @@ export default async function AdminCustomersPage(){
     ORDER BY u.created_at DESC
   `).catch(()=>({rows:[]}));
   return <div className="admin-page">
-    <header className="admin-page-head"><div><div className="admin-kicker">Customer accounts</div><h1>Customers</h1><p>Registered customer access with linked order and subscription activity.</p></div></header>
+    <header className="admin-page-head"><div><div className="admin-kicker">Customer accounts</div><h1>Customers</h1><p>Registered customer access with linked order and subscription activity.</p></div><a className="admin-secondary" href="/api/admin/reports/customers" download>Customer of the Year CSV</a></header>
     <AdminCustomersClient initialRows={result.rows as any}/>
   </div>;
 }

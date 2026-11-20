@@ -49,14 +49,14 @@ export default async function AccountPage(){
 
     <div className="account-section-grid">
       <section className="account-panel">
-        <div className="account-panel-head"><div><h2>Your orders</h2><p>Orders using {session.email}</p></div><Link href="/order">Order again</Link></div>
+        <div className="account-panel-head"><div><h2>Your orders</h2><p>Orders using {session.email}</p></div><Link href="/order-here">Order again</Link></div>
         <div className="account-order-list">
           {orders.rows.map((row:any)=><div className="account-order-row" key={row.id}>
             <div><strong>{new Date(row.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</strong><small>#{String(row.id).slice(0,8)}</small></div>
             <div><strong>{money(row.total_pence)}</strong><small style={{textTransform:"capitalize"}}>{row.fulfilment}</small></div>
             <span className={"admin-badge "+row.status}>{String(row.status).replace("_"," ")}</span>
           </div>)}
-          {!orders.rows.length&&<div className="empty-state"><p>No orders are linked to this email yet.</p><Link className="btn btn-small" href="/order">View this week’s menu</Link></div>}
+          {!orders.rows.length&&<div className="empty-state"><p>No orders are linked to this email yet.</p><Link className="btn btn-small" href="/order-here">View this week’s menu</Link></div>}
         </div>
       </section>
 

@@ -41,3 +41,49 @@ The responsive /admin console provides:
 - System health checks and privileged audit trail
 
 See .env.example for deployment and admin-bootstrap settings.
+
+## Kitchen system connection (simplekitchen-admin)
+
+simplekitchen-admin was built against WooCommerce. This site serves the same
+WooCommerce REST API (`/wp-json/wc/v3/...`) and webhooks, so admin needs **no
+code changes** — only its connection settings.
+
+What admin uses, and what this site provides:
+
+| admin does | served by |
+|---|---|
+| Polls orders (`GET orders?status=…&after=…`) | Woo-shaped orders, numbered above every imported Woo order |
+| Imports products, weeks and subscription variations | `GET products`, `products/{id}/variations` with `Week 1`–`Week 6` categories |
+| Refund + cancel (`POST orders/{id}/refunds`, `PUT orders/{id}`) | Stripe refund, then status change |
+| Tests the connection (`GET system_status`) | Basic environment info |
+| Receives `order.created` / `order.updated` webhooks | Signed with `X-WC-Webhook-Signature` exactly like Woo |
+
+Subscriptions: this site takes the payment. Every paid period becomes an order
+with a `Weekly Meal Subscription - 10` style line, as WooCommerce Subscriptions
+produced, and admin sends the weekly meal-choice email from there. Renewals are
+anchored to the menu opening (Saturday 12 noon by default) so each lands in
+admin's Saturday–Wednesday week. The site's own meal selector stays switched
+off unless `SUBSCRIPTION_MEAL_SELECTION=site`.
+
+### Cutover checklist
+
+1. Set `KITCHEN_API_KEY`, `KITCHEN_API_SECRET`, `KITCHEN_WEBHOOK_SECRET` (and the
+   other `KITCHEN_*` values) in `.env`; restart.
+2. Run the Woo history import (`npm run import:woo-history`) and the coupon
+   import in /admin → Coupons, so history and live codes (including SK Rewards
+   referral and January codes) are present. Imported orders keep their Woo number.
+3. In admin → Settings → WooCommerce connection: store URL
+   `https://simplekitchenprep.com`, key/secret from step 1, then **Test**.
+4. In admin's environment set `WC_WEBHOOK_SECRET` to the same value as
+   `KITCHEN_WEBHOOK_SECRET`.
+5. In Stripe, send `checkout.session.completed`, `checkout.session.expired`,
+   `invoice.paid` and `customer.subscription.deleted` to `/api/stripe/webhook`.
+
+### SK Rewards carry-over
+
+- January 2027 loyalty codes import with their rules: usable 1–31 January,
+  25% of eligible food up to £20, single use, email-restricted.
+- Refer-a-friend 10% codes import as normal coupons.
+- `/order-here/ref/<token>` links (and the old `/order`) redirect to `/order-here`.
+- Free gift £0 lines on imported orders are kept, with their gift metadata.
+- /admin → Customers → **Customer of the Year CSV**.

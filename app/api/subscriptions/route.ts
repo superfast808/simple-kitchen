@@ -1,9 +1,11 @@
 import { NextRequest,NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { config } from "@/lib/config";
 import { collectionAvailable,quoteDelivery } from "@/lib/fulfilment";
 import { getRuntimeCommerceSettings } from "@/lib/runtimeConfig";
 import { getRuntimeSubscriptionPlan } from "@/lib/runtimeSubscriptions";
 import { getStripe } from "@/lib/stripe";
+import { subscriptionBillingPlan } from "@/lib/subscriptionOrders";
 
 export async function POST(request:NextRequest){
   try{
@@ -38,27 +40,40 @@ export async function POST(request:NextRequest){
     }
 
     const stripe=await getStripe();
-    const line_items=[{
-      quantity:1,
-      price_data:{
-        currency:"gbp",
-        unit_amount:option.pricePence,
-        recurring:{interval:"week" as const,interval_count:plan.intervalWeeks},
-        product_data:{name:option.meals+" Simple Kitchen meals — "+plan.name}
-      }
-    }];
-
+    const billing=await subscriptionBillingPlan(plan.intervalWeeks);
+    const recurring={interval:"week" as const,interval_count:plan.intervalWeeks};
+    const mealsName=option.meals+" Simple Kitchen meals — "+plan.name;
+    const deliveryName=plan.fulfilmentsPerCycle===2?"Twice-weekly delivery":"Subscription delivery";
+    const line_items:Stripe.Checkout.SessionCreateParams.LineItem[]=[
+      {quantity:1,price_data:{currency:"gbp",unit_amount:option.pricePence,recurring,product_data:{name:mealsName}}}
+    ];
     if(deliveryFeePence){
-      line_items.push({
-        quantity:1,
-        price_data:{
-          currency:"gbp",
-          unit_amount:deliveryFeePence,
-          recurring:{interval:"week" as const,interval_count:plan.intervalWeeks},
-          product_data:{name:plan.fulfilmentsPerCycle===2?"Twice-weekly delivery":"Subscription delivery"}
-        }
-      });
+      line_items.push({quantity:1,price_data:{currency:"gbp",unit_amount:deliveryFeePence,recurring,product_data:{name:deliveryName}}});
     }
+    // While the menu is open the first period is charged today as a one-off;
+    // the recurring price then starts at the anchored menu opening.
+    if(billing.payNow){
+      line_items.push({quantity:1,price_data:{currency:"gbp",unit_amount:option.pricePence,product_data:{name:"First delivery: "+mealsName}}});
+      if(deliveryFeePence) line_items.push({quantity:1,price_data:{currency:"gbp",unit_amount:deliveryFeePence,product_data:{name:"First delivery: "+deliveryName}}});
+    }
+
+    const metadata={
+      type:"subscription",
+      plan:plan.id,
+      intervalWeeks:String(plan.intervalWeeks),
+      fulfilmentsPerCycle:String(plan.fulfilmentsPerCycle),
+      meals:String(option.meals),
+      fulfilment:body.fulfilment,
+      customerName:body.name,
+      wooProductId:String(plan.wooProductId),
+      wooVariationId:String(option.wooVariationId),
+      address1:body.address1||"",
+      address2:body.address2||"",
+      city:body.city||"",
+      postcode:body.postcode||"",
+      deliveryZone,
+      deliveryFeePence:String(deliveryFeePence)
+    };
 
     const session=await stripe.checkout.sessions.create({
       mode:"subscription",
@@ -66,23 +81,13 @@ export async function POST(request:NextRequest){
       customer_email:body.email,
       success_url:config.siteUrl+"/subscription-success",
       cancel_url:config.siteUrl+"/subscriptions",
-      metadata:{
-        type:"subscription",
-        plan:plan.id,
-        intervalWeeks:String(plan.intervalWeeks),
-        fulfilmentsPerCycle:String(plan.fulfilmentsPerCycle),
-        meals:String(option.meals),
-        fulfilment:body.fulfilment,
-        customerName:body.name,
-        wooProductId:String(plan.wooProductId),
-        wooVariationId:String(option.wooVariationId),
-        address1:body.address1||"",
-        address2:body.address2||"",
-        city:body.city||"",
-        postcode:body.postcode||"",
-        deliveryZone,
-        deliveryFeePence:String(deliveryFeePence)
-      }
+      metadata,
+      subscription_data:{
+        metadata,
+        billing_cycle_anchor:Math.floor(billing.anchor.toSeconds()),
+        proration_behavior:"none"
+      },
+      ...(billing.payNow?{}:{custom_text:{submit:{message:"Your first payment is taken "+billing.firstChargeLabel+", when the menu opens."}}})
     });
     return NextResponse.json({url:session.url});
   }catch(error){

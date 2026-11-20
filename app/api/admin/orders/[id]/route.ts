@@ -1,6 +1,7 @@
 import { NextRequest,NextResponse } from "next/server";
 import { auditAdmin,requestIp,requireAdminApi,sameOriginMutation } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
+import { notifyKitchenLater } from "@/lib/kitchenBridge";
 
 const allowed=new Set(["pending","paid","processing","completed","on_hold","failed","cancelled","expired"]);
 
@@ -13,6 +14,7 @@ export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:str
   if(!body.status||!allowed.has(body.status)) return NextResponse.json({error:"Invalid order status."},{status:400});
   const result=await db().query("UPDATE orders SET status=$2,updated_at=now() WHERE id=$1 RETURNING id,status",[id,body.status]);
   if(!result.rowCount) return NextResponse.json({error:"Order not found."},{status:404});
+  notifyKitchenLater(id,"order.updated");
   await auditAdmin({userId:session.userId,actorEmail:session.email,action:"order.status",entityType:"order",entityId:id,detail:{status:body.status},ipAddress:requestIp(request)});
   return NextResponse.json({ok:true,status:body.status});
 }
